@@ -39,36 +39,36 @@ ipop_op_data_path_2025 <- Sys.getenv("ipop_op_data_2025")
 
 # deaths environment variables ----
 # nationwide, all ages environment variables ----
-death_us_all_2019_path <- Sys.getenv("death_us_all_2019_folder")
 death_us_all_2020_path <- Sys.getenv("death_us_all_2020_folder")
 death_us_all_2021_path <- Sys.getenv("death_us_all_2021_folder")
 death_us_all_2022_path <- Sys.getenv("death_us_all_2022_folder")
 death_us_all_2023_path <- Sys.getenv("death_us_all_2023_folder")
-death_us_all_2019_2023_path <- Sys.getenv("death_us_all_2019_2023_folder")
+death_us_all_2024_path <- Sys.getenv("death_us_all_2024_folder")
+death_us_all_2020_2024_path <- Sys.getenv("death_us_all_2020_2024_folder")
 
 # nationwide, ages 1-44 environment variables ----
-death_us_1_44_2019_path <- Sys.getenv("death_us_1_44_2019_folder")
 death_us_1_44_2020_path <- Sys.getenv("death_us_1_44_2020_folder")
 death_us_1_44_2021_path <- Sys.getenv("death_us_1_44_2021_folder")
 death_us_1_44_2022_path <- Sys.getenv("death_us_1_44_2022_folder")
 death_us_1_44_2023_path <- Sys.getenv("death_us_1_44_2023_folder")
-death_us_1_44_2019_2023_path <- Sys.getenv("death_us_1_44_2019_2023_folder")
+death_us_1_44_2024_path <- Sys.getenv("death_us_1_44_2024_folder")
+death_us_1_44_2020_2024_path <- Sys.getenv("death_us_1_44_2020_2024_folder")
 
 # iowa, all ages environment variables ----
-death_ia_all_2019_path <- Sys.getenv("death_ia_all_2019_folder")
 death_ia_all_2020_path <- Sys.getenv("death_ia_all_2020_folder")
 death_ia_all_2021_path <- Sys.getenv("death_ia_all_2021_folder")
 death_ia_all_2022_path <- Sys.getenv("death_ia_all_2022_folder")
 death_ia_all_2023_path <- Sys.getenv("death_ia_all_2023_folder")
-death_ia_all_2019_2023_path <- Sys.getenv("death_ia_all_2019_2023_folder")
+death_ia_all_2024_path <- Sys.getenv("death_ia_all_2024_folder")
+death_ia_all_2020_2024_path <- Sys.getenv("death_ia_all_2020_2024_folder")
 
 # iowa, ages 1-44 environment variables ----
-death_ia_1_44_2019_path <- Sys.getenv("death_ia_1_44_2019_folder")
 death_ia_1_44_2020_path <- Sys.getenv("death_ia_1_44_2020_folder")
 death_ia_1_44_2021_path <- Sys.getenv("death_ia_1_44_2021_folder")
 death_ia_1_44_2022_path <- Sys.getenv("death_ia_1_44_2022_folder")
 death_ia_1_44_2023_path <- Sys.getenv("death_ia_1_44_2023_folder")
-death_ia_1_44_2019_2023_path <- Sys.getenv("death_ia_1_44_2019_2023_folder")
+death_ia_1_44_2024_path <- Sys.getenv("death_ia_1_44_2024_folder")
+death_ia_1_44_2020_2024_path <- Sys.getenv("death_ia_1_44_2020_2024_folder")
 
 # iowa, health statistics data environment variables ----
 deathpop_data_path <- Sys.getenv("deathpop_data_folder")
@@ -95,11 +95,11 @@ iowa_state_age_pops_path <- Sys.getenv("IOWA_STATE_POPS")
 ###_____________________________________________________________________________
 # Load the files used to categorize mechanism and nature of injury ----
 # based on the ICD-10 injury code
-# NOTICE THAT IN ORDER TO GET THE SAME COUNTS AS IN TABLEAU WITH REGARD TO THE
+# NOTICE THAT IN ORDER TO GET THE SAME COUNTS AS IN POWER BI WITH REGARD TO THE
 # CAUSE OF INJURY / NATURE OF INJURY / body region (lvl1 and lvl2) you must run
 # RUN distinct(Unique_Incident_ID, [coi_ar, cc2, body region], .keep_all = TRUE)
 # and then your count() function or else you will not get the same counts in R.
-# Tableau does a better job of automating the grouping via AI, and in R you have
+# POWER BI does a better job of automating the grouping via AI, and in R you have
 # to do that manually.
 ###_____________________________________________________________________________
 
@@ -543,12 +543,12 @@ ipop_data_clean <- dplyr::bind_rows(
 dplyr::glimpse(ipop_data_clean)
 
 ###_____________________________________________________________________________
-# census bureau standard pops 2021-2025 census ----
+# census bureau standard pops 2020-2025 census ----
 # documentation here:
 # https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/
 ###_____________________________________________________________________________
 
-# 2021-2025 Census Bureau County population data ----
+# 2020-2025 Census Bureau County population data ----
 # get years for each county population
 county_pops_all <- readr::read_csv(
   file = iowa_county_pops_path
@@ -583,7 +583,7 @@ county_pops_select <- county_pops_all |>
 # ingest data
 age_group_pops <- readr::read_csv(iowa_county_age_pops_path)
 
-# 2021-2025 data Iowa county population data by age group
+# 2020-2025 data Iowa county population data by age group
 age_group_pops_final <- age_group_pops |>
   dplyr::select(
     CTYNAME,
@@ -596,10 +596,10 @@ age_group_pops_final <- age_group_pops |>
   ) |>
 
   # Year #1 here is the base year at 4/1/2020
-  dplyr::filter(YEAR != 1) |> # 7/1/2020 - 7/1/2024 pop estimates
+  dplyr::filter(YEAR != 1) |> # 7/1/2020 - 7/1/2025 pop estimates
 
   # Add 2018 to each year so that 2 == 2020, 3 == 2021, 4 == 2022, 5 == 2023,
-  # and 6 == 2024, which is the intended meaning
+  # and 6 == 2024, and so on, which is the intended meaning
   dplyr::mutate(YEAR = 2018 + YEAR) |>
   dplyr::rename(Year = YEAR) |>
   tidyr::pivot_longer(
@@ -638,7 +638,7 @@ age_group_pops_final <- age_group_pops |>
 ###_____________________________________________________________________________
 # age group populations for Iowa at the state (not county) level ----
 # work with the sc-est[year]-agesex-civ.csv files for this via
-# https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/state/asrh/
+# https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/state/asrh/
 ###_____________________________________________________________________________
 
 # Iowa age groups at the state level for 2018-2022
@@ -859,28 +859,13 @@ us_age_pops_clean <- us_age_pops |>
 # https://hhs.iowa.gov/public-health/health-statistics
 # Go to the most recent year's Vital Statistics of Iowa Annual Report
 # Use the chart LEADING CAUSES OF DEATH BY NUMBER AND PERCENT OF TOTAL DEATHS, BY GENDER
-# Copy / paste the text data from the last 5 years into ChatGPT and ask it to
+# Copy / paste the text data from the last 5 years into Copilot and ask it to
 # put the data in data.frame format and it will.
 # for other estimates, utilize the Tableau workbook at
 # https://data.idph.state.ia.us/#/site/IDPH-Data/views/TraumaDeaths/TraumaRequest
 ###_____________________________________________________________________________
 
 # CDC WONDER ALL UNITED STATES all ages ----
-
-# All US and all ages 2019 ----
-death_cdc_wonder_nation_all_2019 <- readr::read_csv(
-  file = death_us_all_2019_path,
-  n_max = 10
-) |>
-  dplyr::rename(Year = Notes) |>
-  dplyr::mutate(Year = 2019) |>
-  dplyr::mutate(
-    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
-      `UCD - 15 Leading Causes of Death`,
-      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
-      ""
-    )
-  )
 
 # All US and all ages 2020 ----
 death_cdc_wonder_nation_all_2020 <- readr::read_csv(
@@ -942,9 +927,24 @@ death_cdc_wonder_nation_all_2023 <- readr::read_csv(
     )
   )
 
-# All US and all ages 2019-2023 ----
-death_cdc_wonder_nation_all_2019_2023_aggregate <- readr::read_csv(
-  file = death_us_all_2019_2023_path,
+# All US and all ages 2024 ----
+death_cdc_wonder_nation_all_2024 <- readr::read_csv(
+  file = death_us_all_2024_path,
+  n_max = 10
+) |>
+  dplyr::rename(Year = Notes) |>
+  dplyr::mutate(Year = 2024) |>
+  dplyr::mutate(
+    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
+      `UCD - 15 Leading Causes of Death`,
+      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
+      ""
+    )
+  )
+
+# All US and all ages 2020-2025 ----
+death_cdc_wonder_nation_all_2020_2024_aggregate <- readr::read_csv(
+  file = death_us_all_2020_2024_path,
   n_max = 10
 ) |>
   dplyr::select(-Notes) |>
@@ -956,13 +956,13 @@ death_cdc_wonder_nation_all_2019_2023_aggregate <- readr::read_csv(
     )
   )
 
-# All US deaths 2019 - 2023 ----
-death_cdc_wonder_nation_all_2019_2023_detail <- dplyr::bind_rows(
-  death_cdc_wonder_nation_all_2019,
+# All US deaths 2020 - 2024 ----
+death_cdc_wonder_nation_all_2020_2024_detail <- dplyr::bind_rows(
   death_cdc_wonder_nation_all_2020,
   death_cdc_wonder_nation_all_2021,
   death_cdc_wonder_nation_all_2022,
-  death_cdc_wonder_nation_all_2023
+  death_cdc_wonder_nation_all_2023,
+  death_cdc_wonder_nation_all_2024
 ) |>
   dplyr::mutate(
     `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
@@ -974,37 +974,22 @@ death_cdc_wonder_nation_all_2019_2023_detail <- dplyr::bind_rows(
 
 # Download top 10 deaths yearly detail file to .csv for future reference ----
 readr::write_csv(
-  death_cdc_wonder_nation_all_2019_2023_detail,
-  file = paste0(death_path, "death_cdc_wonder_nation_all_2019_2023_detail.csv")
+  death_cdc_wonder_nation_all_2020_2024_detail,
+  file = paste0(death_path, "death_cdc_wonder_nation_all_2020_2024_detail.csv")
 )
 
 # Download top 10 deaths aggregate file to .csv for future reference ----
 readr::write_csv(
-  death_cdc_wonder_nation_all_2019_2023_aggregate,
+  death_cdc_wonder_nation_all_2020_2024_aggregate,
   file = paste0(
     death_path,
-    "death_cdc_wonder_nation_all_2019_2023_aggregate.csv"
+    "death_cdc_wonder_nation_all_2020_2024_aggregate.csv"
   )
 )
 
 ###
 # Iowa CDC WONDER all ages ----
 ###
-
-# Iowa and all ages 2019 ----
-death_cdc_wonder_iowa_all_2019 <- readr::read_csv(
-  file = death_ia_all_2019_path,
-  n_max = 10
-) |>
-  dplyr::rename(Year = Notes) |>
-  dplyr::mutate(Year = 2019) |>
-  dplyr::mutate(
-    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
-      `UCD - 15 Leading Causes of Death`,
-      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
-      ""
-    )
-  )
 
 # Iowa and all ages 2020 ----
 death_cdc_wonder_iowa_all_2020 <- readr::read_csv(
@@ -1066,9 +1051,24 @@ death_cdc_wonder_iowa_all_2023 <- readr::read_csv(
     )
   )
 
-# Iowa and all ages 2019-2023 ----
-death_cdc_wonder_iowa_all_2019_2023_aggregate <- readr::read_csv(
-  file = death_ia_all_2019_2023_path,
+# Iowa and all ages 2024 ----
+death_cdc_wonder_iowa_all_2024 <- readr::read_csv(
+  file = death_ia_all_2024_path,
+  n_max = 10
+) |>
+  dplyr::rename(Year = Notes) |>
+  dplyr::mutate(Year = 2024) |>
+  dplyr::mutate(
+    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
+      `UCD - 15 Leading Causes of Death`,
+      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
+      ""
+    )
+  )
+
+# Iowa and all ages 2020-2025 ----
+death_cdc_wonder_iowa_all_2020_2024_aggregate <- readr::read_csv(
+  file = death_ia_all_2020_2024_path,
   n_max = 10
 ) |>
   dplyr::select(-Notes) |>
@@ -1080,13 +1080,13 @@ death_cdc_wonder_iowa_all_2019_2023_aggregate <- readr::read_csv(
     )
   )
 
-# All US deaths 2019 - 2023 ----
-death_cdc_wonder_iowa_all_2019_2023_detail <- dplyr::bind_rows(
-  death_cdc_wonder_iowa_all_2019,
+# All US deaths 2020 - 2024 ----
+death_cdc_wonder_iowa_all_2020_2024_detail <- dplyr::bind_rows(
   death_cdc_wonder_iowa_all_2020,
   death_cdc_wonder_iowa_all_2021,
   death_cdc_wonder_iowa_all_2022,
-  death_cdc_wonder_iowa_all_2023
+  death_cdc_wonder_iowa_all_2023,
+  death_cdc_wonder_iowa_all_2024
 ) |>
   dplyr::mutate(
     `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
@@ -1098,37 +1098,22 @@ death_cdc_wonder_iowa_all_2019_2023_detail <- dplyr::bind_rows(
 
 # Download top 10 deaths yearly detail file to .csv for future reference ----
 readr::write_csv(
-  death_cdc_wonder_iowa_all_2019_2023_detail,
-  file = paste0(death_path, "death_cdc_wonder_iowa_all_2019_2023_detail.csv")
+  death_cdc_wonder_iowa_all_2020_2024_detail,
+  file = paste0(death_path, "death_cdc_wonder_iowa_all_2020_2024_detail.csv")
 )
 
 # Download top 10 deaths aggregate file to .csv for future reference ----
 readr::write_csv(
-  death_cdc_wonder_iowa_all_2019_2023_aggregate,
+  death_cdc_wonder_iowa_all_2020_2024_aggregate,
   file = paste0(
     death_path,
-    "death_cdc_wonder_iowa_all_2019_2023_aggregate.csv"
+    "death_cdc_wonder_iowa_all_2020_2024_aggregate.csv"
   )
 )
 
 ###
 # US National CDC WONDER ages 1-44 ----
 ###
-
-# CDC ages 1-44 2019 ----
-death_cdc_wonder_nation_1_44_2019 <- readr::read_csv(
-  file = death_us_1_44_2019_path,
-  n_max = 10
-) |>
-  dplyr::rename(Year = Notes) |>
-  dplyr::mutate(Year = 2019) |>
-  dplyr::mutate(
-    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
-      `UCD - 15 Leading Causes of Death`,
-      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
-      ""
-    )
-  )
 
 # CDC ages 1-44 2020 ----
 death_cdc_wonder_nation_1_44_2020 <- readr::read_csv(
@@ -1190,9 +1175,24 @@ death_cdc_wonder_nation_1_44_2023 <- readr::read_csv(
     )
   )
 
-# CDC ages 1-44 2019-2023 ----
-death_cdc_wonder_nation_1_44_2019_2023_aggregate <- readr::read_csv(
-  file = death_us_1_44_2019_2023_path,
+# CDC ages 1-44 2024 ----
+death_cdc_wonder_nation_1_44_2024 <- readr::read_csv(
+  file = death_us_1_44_2024_path,
+  n_max = 10
+) |>
+  dplyr::rename(Year = Notes) |>
+  dplyr::mutate(Year = 2024) |>
+  dplyr::mutate(
+    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
+      `UCD - 15 Leading Causes of Death`,
+      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
+      ""
+    )
+  )
+
+# CDC ages 1-44 2020-2025 ----
+death_cdc_wonder_nation_1_44_2020_2024_aggregate <- readr::read_csv(
+  file = death_us_1_44_2020_2024_path,
   n_max = 10
 ) |>
   dplyr::select(-Notes) |>
@@ -1204,13 +1204,13 @@ death_cdc_wonder_nation_1_44_2019_2023_aggregate <- readr::read_csv(
     )
   )
 
-# All US ages 1-44 deaths 2019 - 2023
-death_cdc_wonder_nation_1_44_2019_2023_detail <- dplyr::bind_rows(
-  death_cdc_wonder_nation_1_44_2019,
+# All US ages 1-44 deaths 2020 - 2024
+death_cdc_wonder_nation_1_44_2020_2024_detail <- dplyr::bind_rows(
   death_cdc_wonder_nation_1_44_2020,
   death_cdc_wonder_nation_1_44_2021,
   death_cdc_wonder_nation_1_44_2022,
-  death_cdc_wonder_nation_1_44_2023
+  death_cdc_wonder_nation_1_44_2023,
+  death_cdc_wonder_nation_1_44_2024
 ) |>
   dplyr::mutate(
     `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
@@ -1223,37 +1223,22 @@ death_cdc_wonder_nation_1_44_2019_2023_detail <- dplyr::bind_rows(
 # Download top 10 deaths ages 1-44 yearly detail file to .csv for future
 # reference ----
 readr::write_csv(
-  death_cdc_wonder_nation_1_44_2019_2023_detail,
-  file = paste0(death_path, "death_cdc_wonder_nation_1_44_2019_2023_detail.csv")
+  death_cdc_wonder_nation_1_44_2020_2024_detail,
+  file = paste0(death_path, "death_cdc_wonder_nation_1_44_2020_2024_detail.csv")
 )
 
 # Download top 10 deaths ages 1-44 aggregate file to .csv for future reference ----
 readr::write_csv(
-  death_cdc_wonder_nation_1_44_2019_2023_aggregate,
+  death_cdc_wonder_nation_1_44_2020_2024_aggregate,
   file = paste0(
     death_path,
-    "death_cdc_wonder_nation_1_44_2019_2023_aggregate.csv"
+    "death_cdc_wonder_nation_1_44_2020_2024_aggregate.csv"
   )
 )
 
 ###
 # Iowa CDC WONDER ages 1-44 ----
 ###
-
-# Iowa CDC ages 1-44 2019 ----
-death_cdc_wonder_iowa_1_44_2019 <- readr::read_csv(
-  file = death_ia_1_44_2019_path,
-  n_max = 10
-) |>
-  dplyr::rename(Year = Notes) |>
-  dplyr::mutate(Year = 2019) |>
-  dplyr::mutate(
-    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
-      `UCD - 15 Leading Causes of Death`,
-      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
-      ""
-    )
-  )
 
 # Iowa CDC ages 1-44 2020 ----
 death_cdc_wonder_iowa_1_44_2020 <- readr::read_csv(
@@ -1315,9 +1300,24 @@ death_cdc_wonder_iowa_1_44_2023 <- readr::read_csv(
     )
   )
 
-# Iowa CDC ages 1-44 2019-2023 ----
-death_cdc_wonder_iowa_1_44_2019_2023_aggregate <- readr::read_csv(
-  file = death_ia_1_44_2019_2023_path,
+# Iowa CDC ages 1-44 2024 ----
+death_cdc_wonder_iowa_1_44_2024 <- readr::read_csv(
+  file = death_ia_1_44_2024_path,
+  n_max = 10
+) |>
+  dplyr::rename(Year = Notes) |>
+  dplyr::mutate(Year = 2024) |>
+  dplyr::mutate(
+    `UCD - 15 Leading Causes of Death` = stringr::str_replace_all(
+      `UCD - 15 Leading Causes of Death`,
+      pattern = "^[#]|\\s\\(.+\\)|\\s\\(.+\\)\\s\\(.+\\)",
+      ""
+    )
+  )
+
+# Iowa CDC ages 1-44 2020-2025 ----
+death_cdc_wonder_iowa_1_44_2020_2024_aggregate <- readr::read_csv(
+  file = death_ia_1_44_2020_2024_path,
   n_max = 10
 ) |>
   dplyr::select(-Notes) |>
@@ -1329,13 +1329,8 @@ death_cdc_wonder_iowa_1_44_2019_2023_aggregate <- readr::read_csv(
     )
   )
 
-# All Iowa  ages 1-44 deaths 2019 - 2023
-death_cdc_wonder_iowa_1_44_2019_2023_detail <- dplyr::bind_rows(
-  death_cdc_wonder_iowa_1_44_2019 |>
-    dplyr::mutate(dplyr::across(
-      tidyselect::matches("rate"),
-      ~ as.numeric(stringr::str_remove_all(., "Unreliable"))
-    )),
+# All Iowa  ages 1-44 deaths 2020 - 2024
+death_cdc_wonder_iowa_1_44_2020_2024_detail <- dplyr::bind_rows(
   death_cdc_wonder_iowa_1_44_2020 |>
     dplyr::mutate(dplyr::across(
       tidyselect::matches("rate"),
@@ -1355,6 +1350,11 @@ death_cdc_wonder_iowa_1_44_2019_2023_detail <- dplyr::bind_rows(
     dplyr::mutate(dplyr::across(
       tidyselect::matches("rate"),
       ~ as.numeric(stringr::str_remove_all(., "Unreliable"))
+    )),
+  death_cdc_wonder_iowa_1_44_2024 |>
+    dplyr::mutate(dplyr::across(
+      tidyselect::matches("rate"),
+      ~ as.numeric(stringr::str_remove_all(., "Unreliable"))
     ))
 ) |>
   dplyr::mutate(
@@ -1368,16 +1368,16 @@ death_cdc_wonder_iowa_1_44_2019_2023_detail <- dplyr::bind_rows(
 # Iowa Download top 10 deaths ages 1-44 yearly detail file to .csv for future
 # reference ----
 readr::write_csv(
-  death_cdc_wonder_iowa_1_44_2019_2023_detail,
-  file = paste0(death_path, "death_cdc_wonder_iowa_1_44_2019_2023_detail.csv")
+  death_cdc_wonder_iowa_1_44_2020_2024_detail,
+  file = paste0(death_path, "death_cdc_wonder_iowa_1_44_2020_2024_detail.csv")
 )
 
 # Iowa Download top 10 deaths ages 1-44 aggregate file to .csv for future reference ----
 readr::write_csv(
-  death_cdc_wonder_iowa_1_44_2019_2023_aggregate,
+  death_cdc_wonder_iowa_1_44_2020_2024_aggregate,
   file = paste0(
     death_path,
-    "death_cdc_wonder_iowa_1_44_2019_2023_aggregate.csv"
+    "death_cdc_wonder_iowa_1_44_2020_2024_aggregate.csv"
   )
 )
 
