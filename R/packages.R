@@ -40,7 +40,13 @@ if (any(required_packages %notin% installed.packages())) {
   ]
 
   # only install those needed
-  lapply(missing_packages, pak::pak, character.only = TRUE)
+  lapply(missing_packages, pak::pak)
+
+  # print a message to the console reporting that work is done
+  print_message <- paste(
+    "The following missing packages were attached via `pak::pak()`: ",
+    paste(missing_packages, collapse = ", ")
+  )
 } else {
   # otherwise print a message to the console stating all is well
   message("All required packages are attached.")
