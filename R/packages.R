@@ -42,5 +42,6 @@ if (any(required_packages %notin% installed.packages())) {
   # only install those needed
   lapply(missing_packages, pak::pak, character.only = TRUE)
 } else {
+  # otherwise print a message to the console stating all is well
   message("All required packages are attached.")
 }
