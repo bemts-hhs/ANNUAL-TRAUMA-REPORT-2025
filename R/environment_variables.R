@@ -17,20 +17,6 @@ trauma_data_path_2025 <- Sys.getenv("trauma_data_2025")
 # ems environment variables ----
 ems_data_path <- Sys.getenv("ems_data_folder")
 
-# ipop inpatient environment variables ----
-ipop_ip_data_path_2021 <- Sys.getenv("ipop_ip_data_2021")
-ipop_ip_data_path_2022 <- Sys.getenv("ipop_ip_data_2022")
-ipop_ip_data_path_2023 <- Sys.getenv("ipop_ip_data_2023")
-ipop_ip_data_path_2024 <- Sys.getenv("ipop_ip_data_2024")
-ipop_ip_data_path_2025 <- Sys.getenv("ipop_ip_data_2025")
-
-# ipop outpatient environment variables ----
-ipop_op_data_path_2021 <- Sys.getenv("ipop_op_data_2021")
-ipop_op_data_path_2022 <- Sys.getenv("ipop_op_data_2022")
-ipop_op_data_path_2023 <- Sys.getenv("ipop_op_data_2023")
-ipop_op_data_path_2024 <- Sys.getenv("ipop_op_data_2024")
-ipop_op_data_path_2025 <- Sys.getenv("ipop_op_data_2025")
-
 # deaths environment variables ----
 # nationwide, all ages environment variables ----
 death_us_all_2020_path <- Sys.getenv("death_us_all_2020_folder")

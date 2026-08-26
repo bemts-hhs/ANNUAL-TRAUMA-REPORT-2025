@@ -8,3 +8,12 @@ source("./R/environment_variables.R")
 
 # dynamically attach packages as needed
 source("./R/packages.R")
+
+# get helper files into memory
+source("./R/helpers.R")
+
+# load census bureau data
+source("./R/census_bureau_data.R")
+
+# load death data
+source("./R/death_data.R")
