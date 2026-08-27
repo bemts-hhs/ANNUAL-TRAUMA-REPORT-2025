@@ -4,11 +4,6 @@
 
 ## packages ----
 
-# install pak
-if (!require("pak")) {
-  install.packages("pak")
-}
-
 # define target packages
 required_packages <- c(
   'renv',

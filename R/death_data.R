@@ -31,6 +31,8 @@
 
 # CDC WONDER ALL UNITED STATES all ages ----
 
+message("Loading ")
+
 # All US and all ages 2020 ----
 death_cdc_wonder_nation_all_2020 <- readr::read_delim(
   file = death_us_all_2020_path,
