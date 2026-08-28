@@ -11,7 +11,7 @@ trauma_data_2023 <- readr::read_csv(file = trauma_data_path_2023)
 trauma_data_2024 <- readr::read_csv(file = trauma_data_path_2024)
 trauma_data_2025 <- readr::read_csv(file = trauma_data_path_2025)
 
-# union the trauma data
+## union the trauma data ----
 trauma_data <- dplyr::bind_rows(
   trauma_data_2021 |>
     dplyr::mutate(dplyr::across(
@@ -40,7 +40,7 @@ trauma_data <- dplyr::bind_rows(
     ))
 )
 
-# deal with missing values in cause of injury categories
+## deal with missing values in cause of injury categories ----
 trauma_data_clean <- trauma_data |>
   dplyr::mutate(
     Age_Group = dplyr::case_when(
@@ -159,18 +159,18 @@ trauma_data_clean <- trauma_data |>
     .after = County
   )
 
-# get the trauma data for the year of interest
+## get the trauma data for the year of interest ----
 trauma_2025 <- trauma_data_clean |> dplyr::filter(Year == 2025)
 
-# check the trauma data
+## check the trauma data ----
 dplyr::glimpse(trauma_2025)
 
-### ems data ----
+## ems data ----
 ems_data <- readr::read_csv(file = ems_data_path)
 
-# deal with missing injury categories
+## deal with missing injury categories ----
 ems_data_clean <- ems_data |>
   dplyr::mutate(Injury_1 = dplyr::if_else(is.na(Injury_1), Injury_2, Injury_1))
 
-# check the ems data
+## check the ems data ----
 dplyr::glimpse(ems_data_clean)
