@@ -53,7 +53,7 @@ patient_count_plot <- patient_count_years |>
     y = n,
     label = ifelse(
       Year %in% c(2021, 2025),
-      traumar::pretty_number(x = n, n_decimal = 2),
+      traumar::pretty_number(x = n, digits = 2),
       NA
     )
   )) +
@@ -80,7 +80,7 @@ patient_count_plot <- patient_count_years |>
     axis.text.x = ggplot2::element_text(size = 30)
   ) +
   ggplot2::scale_y_continuous(labels = function(x) {
-    traumar::pretty_number(x, n_decimal = 2)
+    traumar::pretty_number(x, digits = 2)
   })
 
 # save the bar plot ----
@@ -110,7 +110,7 @@ incident_count_plot <- incident_count_years |>
     y = n,
     label = ifelse(
       Year %in% c(2021, 2025),
-      traumar::pretty_number(x = n, n_decimal = 2),
+      traumar::pretty_number(x = n, digits = 2),
       NA
     )
   )) +
@@ -136,7 +136,7 @@ incident_count_plot <- incident_count_years |>
     axis.text.y = ggplot2::element_blank()
   ) +
   ggplot2::scale_y_continuous(labels = function(x) {
-    traumar::pretty_number(x, n_decimal = 2)
+    traumar::pretty_number(x, digits = 2)
   })
 
 # save the incident plot ----
@@ -387,6 +387,7 @@ age_group_plot <- age_group_plot_df |>
     label = change_label
   )) +
   ggplot2::geom_col(color = "black", width = 0.8) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0)) +
   ggrepel::geom_text_repel(
     size = 6,
     direction = "y",
@@ -429,7 +430,7 @@ age_group_lines <- age_group_plot_df |>
     n,
     group = Age_Range,
     color = Age_Range,
-    label = traumar::pretty_number(x = n, n_decimal = 2)
+    label = traumar::pretty_number(x = n, digits = 2)
   )) +
   ggplot2::geom_line(linewidth = 2, lineend = "round", linejoin = "round") +
   ggplot2::geom_point(size = 3, color = "black") +
@@ -446,13 +447,13 @@ age_group_lines <- age_group_plot_df |>
     caption = "Injury event refers to the number of unique injury incidents that led to evaluation/treatment at a verified trauma center.\nEach injury event could involve multiple cases, and each patient may have one or more injury events in a specified timespan.",
     x = "",
     y = "Injury Event Count",
-    fill = "Change Type"
+    color = "Change Type"
   ) +
   ggplot2::facet_wrap(~Age_Range) +
   ggplot2::guides(color = "none", fill = "none") +
   ggplot2::scale_y_continuous(
     breaks = ggplot2::waiver(),
-    labels = function(x) traumar::pretty_number(x, n_decimal = 2)
+    labels = function(x) traumar::pretty_number(x, digits = 2)
   ) +
   paletteer::scale_color_paletteer_d("colorBlindness::Blue2Orange12Steps") +
   traumar::theme_cleaner(facets = TRUE)
@@ -539,6 +540,7 @@ race_group_plot <- race_group_plot_df |>
     label = change_label
   )) +
   ggplot2::geom_col(color = "black", width = 0.5) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0)) +
   ggrepel::geom_text_repel(
     size = 5,
     segment.color = NA,
@@ -583,7 +585,7 @@ race_group_line_plot <- race_group_plot_df |>
     Patients,
     group = Patient_Race,
     color = Patient_Race,
-    label = traumar::pretty_number(x = Patients, n_decimal = 2)
+    label = traumar::pretty_number(x = Patients, digits = 2)
   )) +
   ggplot2::geom_line(
     linewidth = 2,
@@ -616,7 +618,7 @@ race_group_line_plot <- race_group_plot_df |>
   ggplot2::guides(color = "none", fill = "none") +
   ggplot2::scale_y_continuous(
     breaks = ggplot2::waiver(),
-    labels = function(x) traumar::pretty_number(x, n_decimal = 2)
+    labels = function(x) traumar::pretty_number(x, digits = 2)
   ) +
   paletteer::scale_color_paletteer_d(
     "colorBlindness::Blue2DarkOrange12Steps"
@@ -845,7 +847,7 @@ motor_vehicle_related_cases <-
     increase = round((MVC - dplyr::lag(MVC)) / dplyr::lag(MVC), digits = 3),
     increase_label = traumar::pretty_percent(
       (MVC - dplyr::lag(MVC)) / dplyr::lag(MVC),
-      n_decimal = 2
+      digits = 2
     )
   )
 
@@ -870,7 +872,7 @@ motor_vehicle_related_injuries <-
     increase = round((MVC - dplyr::lag(MVC)) / dplyr::lag(MVC), digits = 3),
     increase_label = traumar::pretty_percent(
       (MVC - dplyr::lag(MVC)) / dplyr::lag(MVC),
-      n_decimal = 2
+      digits = 2
     )
   )
 
@@ -1040,7 +1042,7 @@ work_related_cases <-
     ),
     increase_label = traumar::pretty_percent(
       (cases - dplyr::lag(cases)) / dplyr::lag(cases),
-      n_decimal = 2
+      digits = 2
     )
   )
 
@@ -1068,7 +1070,7 @@ work_related_injuries <-
     ),
     increase_label = traumar::pretty_percent(
       (injuries - dplyr::lag(injuries)) / dplyr::lag(injuries),
-      n_decimal = 2
+      digits = 2
     )
   )
 
@@ -1097,7 +1099,7 @@ farm_related_cases <-
     ),
     increase_label = traumar::pretty_percent(
       (cases - dplyr::lag(cases)) / dplyr::lag(cases),
-      n_decimal = 2
+      digits = 2
     )
   )
 
@@ -1122,7 +1124,7 @@ farm_related_injuries <-
     ),
     increase_label = traumar::pretty_percent(
       (Injury_Events - dplyr::lag(Injury_Events)) / dplyr::lag(Injury_Events),
-      n_decimal = 2
+      digits = 2
     )
   )
 

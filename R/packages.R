@@ -24,7 +24,9 @@ required_packages <- c(
   'gtsummary',
   'gtExtras',
   'webshot2',
-  'svglite'
+  'svglite',
+  'openxlsx2',
+  'gtxlsx' # <- installed using repos = c("https://janmarvin.r-universe.dev", "https://cloud.r-project.org")
 )
 
 # these packages are utilized in this project and must be installed ----
