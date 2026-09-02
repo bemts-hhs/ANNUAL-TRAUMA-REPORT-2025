@@ -135,6 +135,24 @@ trauma_data_clean <- trauma_data |>
       CAUSE_OF_INJURY_AR_1
     )
   ) |>
+  dplyr::mutate(
+    TBI = grepl(
+      pattern = tbi_codes_pattern,
+      x = ICD_10_Diagnosis_Codes_List,
+      ignore.case = TRUE
+    ) |
+      grepl(
+        pattern = tbi_codes_pattern,
+        x = ICD_10_Injury_Codes_List,
+        ignore.case = TRUE
+      ),
+    .after = ICD_10_Injury_Codes_List
+  ) |>
+  dplyr::mutate(
+    Ever_Death = any(Death, na.rm = T),
+    .by = Unique_Patient_ID,
+    .after = Death
+  ) |>
   dplyr::left_join(location_data, by = c("Patient_County" = "County")) |>
   dplyr::rename(
     Designation_Patient = Designation,

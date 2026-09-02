@@ -19,8 +19,6 @@ patient_proportion_message <- "Refers to the proportion of injuries attributed t
 # injury level
 injury_message <- "Injury event refers to the number of unique injury incidents that led to evaluation/treatment at a verified trauma center.  Each injury event could involve multiple cases, and each patient may have one or more injury events in a specified timespan."
 
-# case level
-
 ###_____________________________________________________________________________
 # Get palettes ----
 ###_____________________________________________________________________________

@@ -40,15 +40,18 @@ patients_gt <- patient_count_years |>
   )
 
 ### save the table to xlsx ----
-patients_gt_xlsx <- gtxlsx::wb_add_gt(
-  wb = openxlsx2::wb_workbook()$add_worksheet(grid_lines = FALSE),
-  x = patients_gt
-)
+patients_gt_xlsx <- openxlsx2::wb_workbook() |>
+  openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
+  gtxlsx::wb_add_gt(
+    x = patients_gt
+  )
 
 ### write to the table to xlsx ----
 openxlsx2::wb_save(
   wb = patients_gt_xlsx,
-  file = paste0(output_folder, "/patients.xlsx")
+  file = paste0(output_folder, "/patients.xlsx"),
+  overwrite = TRUE,
+  flush = TRUE
 )
 
 ### save the table as png ----
@@ -174,15 +177,18 @@ incidents_gt <- incident_count_years |>
   tab_style_hhs(message_text = NULL, border_cols = 2:last_col())
 
 ### save the incident table to xlsx
-incidents_gt_xlsx <- gtxlsx::wb_add_gt(
-  wb = openxlsx2::wb_workbook()$add_worksheet(grid_lines = FALSE),
-  x = incidents_gt
-)
+incidents_gt_xlsx <- openxlsx2::wb_workbook() |>
+  openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
+  gtxlsx::wb_add_gt(
+    x = incidents_gt
+  )
 
 ### export xlsx to file ----
 openxlsx2::wb_save(
   wb = incidents_gt_xlsx,
-  file = paste0(output_folder, "incidents.xlsx")
+  file = paste0(output_folder, "/incidents.xlsx"),
+  overwrite = TRUE,
+  flush = TRUE
 )
 
 ### save the incident table to gt ----
@@ -217,15 +223,18 @@ cases_gt <- case_count_years |>
   tab_style_hhs(message_text = NULL, border_cols = 2:last_col())
 
 ### save the incident gt table to xlsx ----
-cases_gt_xlsx <- gtxlsx::wb_add_gt(
-  wb = openxlsx2::wb_workbook()$add_worksheet(grid_lines = FALSE),
-  x = cases_gt
-)
+cases_gt_xlsx <- openxlsx2::wb_workbook() |>
+  openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
+  gtxlsx::wb_add_gt(
+    x = cases_gt
+  )
 
 ### save the incident xlsx to disk ----
 openxlsx2::wb_save(
   wb = cases_gt_xlsx,
-  file = paste0(output_folder, "cases.xlsx")
+  file = paste0(output_folder, "/cases.xlsx"),
+  overwrite = TRUE,
+  flush = TRUE
 )
 
 ### save the cases gt table to png ----
@@ -296,7 +305,7 @@ transfer_delays_2025 <- trauma_data_clean |>
 # Gender ----
 ###_____________________________________________________________________________
 
-# get gender data ----
+## get gender data ----
 gender_group <- trauma_data_clean |>
   dplyr::filter(Year %in% 2024:2025) |>
   dplyr::mutate(
@@ -310,7 +319,7 @@ gender_group <- trauma_data_clean |>
   injury_incident_count(Year, Patient_Gender) |>
   dplyr::mutate(Proportion = (n / sum(n)) * 100, .by = Year)
 
-# create a table visualization using gt() ----
+## create a table visualization using gt() ----
 gender_group_tbl <-
   gender_group |>
   dplyr::mutate(
@@ -347,7 +356,20 @@ gender_group_tbl <-
   ) |>
   tab_style_hhs(border_cols = n:Proportion, message_text = NULL)
 
-# save the table viz ----
+### convert gt object to xlsx ----
+gender_group_tbl_xlsx <- openxlsx2::wb_workbook() |>
+  openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
+  gtxlsx::wb_add_gt(
+    x = gender_group_tbl
+  )
+
+### save the xlsx object to disk ----
+openxlsx2::wb_save(
+  wb = gender_group_tbl_xlsx,
+  file = paste0(output_folder, "/gender_group_tbl.xlsx")
+)
+
+### save the table viz ----
 gt::gtsave(
   data = gender_group_tbl,
   filename = "gender_group_tbl.png",
@@ -504,7 +526,6 @@ ggplot2::ggsave(
   filename = paste0(plot_folder, "/age_group_lines.png"),
   plot = age_group_lines
 )
-
 
 ###_____________________________________________________________________________
 # Race ----
