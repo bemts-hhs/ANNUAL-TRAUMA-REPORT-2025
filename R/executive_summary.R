@@ -17,11 +17,11 @@ patient_count <- trauma_2025 |>
   injury_patient_count() |>
   dplyr::pull(n)
 
-## get the trend ----
+### get the trend ----
 patient_count_years <- trauma_data_clean |>
   injury_patient_count(Year, descriptive_stats = TRUE)
 
-## a gt table ----
+### a gt table ----
 patients_gt <- patient_count_years |>
   gt::gt() |>
   gt::cols_hide(prop_change) |>
@@ -39,14 +39,26 @@ patients_gt <- patient_count_years |>
     body = 16
   )
 
-## save the table ----
+### save the table to xlsx ----
+patients_gt_xlsx <- gtxlsx::wb_add_gt(
+  wb = openxlsx2::wb_workbook()$add_worksheet(grid_lines = FALSE),
+  x = patients_gt
+)
+
+### write to the table to xlsx ----
+openxlsx2::wb_save(
+  wb = patients_gt_xlsx,
+  file = paste0(output_folder, "/patients.xlsx")
+)
+
+### save the table as png ----
 gt::gtsave(
   patients_gt,
   filename = "patients_gt.png",
-  path = plot_folder
+  path = output_folder
 )
 
-## a line plot ----
+### a line plot ----
 patient_count_plot <- patient_count_years |>
   ggplot2::ggplot(ggplot2::aes(
     x = Year,
@@ -83,7 +95,7 @@ patient_count_plot <- patient_count_years |>
     traumar::pretty_number(x, digits = 2)
   })
 
-# save the bar plot ----
+### save the bar plot ----
 ggplot2::ggsave(
   filename = "patient_count_plot.png",
   plot = patient_count_plot,
@@ -92,18 +104,18 @@ ggplot2::ggsave(
   width = 6 * (16 / 9)
 )
 
-# injuries ----
+## injuries ----
 
-# get the current year's count of events ----
+### get the current year's count of events ----
 incident_count <- trauma_2025 |>
   injury_incident_count() |>
   dplyr::pull(n)
 
-# get the trend ----
+### get the trend ----
 incident_count_years <- trauma_data_clean |>
   injury_incident_count(Year, descriptive_stats = TRUE)
 
-# a line graph ----
+### a line graph ----
 incident_count_plot <- incident_count_years |>
   ggplot2::ggplot(ggplot2::aes(
     x = Year,
@@ -139,7 +151,7 @@ incident_count_plot <- incident_count_years |>
     traumar::pretty_number(x, digits = 2)
   })
 
-# save the incident plot ----
+### save the incident plot ----
 ggplot2::ggsave(
   filename = "incident_count_plot.png",
   plot = incident_count_plot,
@@ -148,7 +160,7 @@ ggplot2::ggsave(
   width = 6 * (16 / 9)
 )
 
-# generate the incident table ----
+### generate the incident table ----
 incidents_gt <- incident_count_years |>
   gt::gt() |>
   gt::cols_hide(columns = c(prop_change, Min_Reinjury:Q75_Reinjury)) |>
@@ -161,21 +173,37 @@ incidents_gt <- incident_count_years |>
   gt::fmt_number(columns = 2:3, drop_trailing_zeros = TRUE) |>
   tab_style_hhs(message_text = NULL, border_cols = 2:last_col())
 
+### save the incident table to xlsx
+incidents_gt_xlsx <- gtxlsx::wb_add_gt(
+  wb = openxlsx2::wb_workbook()$add_worksheet(grid_lines = FALSE),
+  x = incidents_gt
+)
+
+### export xlsx to file ----
+openxlsx2::wb_save(
+  wb = incidents_gt_xlsx,
+  file = paste0(output_folder, "incidents.xlsx")
+)
+
+### save the incident table to gt ----
 gt::gtsave(
   incidents_gt,
   filename = "incidents_gt.png",
-  path = plot_folder
+  path = output_folder
 )
 
+## cases ----
 
-# cases ----
+### case counts ----
 case_count <- trauma_2025 |>
   injury_case_count() |>
   dplyr::pull(n)
 
+### cases over time ----
 case_count_years <- trauma_data_clean |>
   injury_case_count(Year, descriptive_stats = TRUE)
 
+### cases gt table ----
 cases_gt <- case_count_years |>
   gt::gt() |>
   gt::cols_hide(prop_change) |>
@@ -188,10 +216,23 @@ cases_gt <- case_count_years |>
   gt::fmt_number(columns = 2:3, drop_trailing_zeros = TRUE) |>
   tab_style_hhs(message_text = NULL, border_cols = 2:last_col())
 
+### save the incident gt table to xlsx ----
+cases_gt_xlsx <- gtxlsx::wb_add_gt(
+  wb = openxlsx2::wb_workbook()$add_worksheet(grid_lines = FALSE),
+  x = cases_gt
+)
+
+### save the incident xlsx to disk ----
+openxlsx2::wb_save(
+  wb = cases_gt_xlsx,
+  file = paste0(output_folder, "cases.xlsx")
+)
+
+### save the cases gt table to png ----
 gt::gtsave(
   cases_gt,
   filename = "cases_gt.png",
-  path = plot_folder
+  path = output_folder
 )
 
 ###_____________________________________________________________________________
@@ -310,7 +351,7 @@ gender_group_tbl <-
 gt::gtsave(
   data = gender_group_tbl,
   filename = "gender_group_tbl.png",
-  path = plot_folder
+  path = output_folder
 )
 
 ###_____________________________________________________________________________
@@ -460,7 +501,7 @@ age_group_lines <- age_group_plot_df |>
 
 # save the age group line plot
 ggplot2::ggsave(
-  filename = paste0(output_folder, "/age_group_lines.png"),
+  filename = paste0(plot_folder, "/age_group_lines.png"),
   plot = age_group_lines
 )
 
@@ -933,7 +974,7 @@ mvc_injury_table <-
 gt::gtsave(
   data = mvc_injury_table,
   filename = "mvc_injury_table.png",
-  path = plot_folder
+  path = output_folder
 )
 
 
@@ -1013,7 +1054,7 @@ gt::gtsave(
   data = reinjury_stat_tbl,
 
   filename = "reinjury_stat_tbl.png",
-  path = plot_folder
+  path = output_folder
 )
 
 
@@ -1232,7 +1273,7 @@ intentionality_of_injury_tbl <-
 gt::gtsave(
   data = intentionality_of_injury_tbl,
   filename = "intentionality_of_injury_tbl.png",
-  path = plot_folder
+  path = output_folder
 )
 
 ###_____________________________________________________________________________
@@ -1404,7 +1445,7 @@ trauma_activation_cases_overall_tbl <-
 gt::gtsave(
   data = trauma_activation_cases_overall_tbl,
   filename = "trauma_activation_cases_overall_tbl.png",
-  path = plot_folder
+  path = output_folder
 )
 
 # gt() table for detailed trauma team activation statistics ----
@@ -1444,7 +1485,7 @@ trauma_activation_cases_tbl <-
 gt::gtsave(
   data = trauma_activation_cases_tbl,
   filename = "trauma_activation_cases_tbl.png",
-  path = plot_folder
+  path = output_folder
 )
 
 
