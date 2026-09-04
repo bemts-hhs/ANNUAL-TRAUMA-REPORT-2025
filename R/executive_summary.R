@@ -891,46 +891,48 @@ fall_related_injuries <-
 
 ## cases ----
 tbi_related_cases <- trauma_data_clean |>
-  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
   injury_case_count(
     Year,
-    BODY_REGION_CATEGORY_LEVEL_2_1,
-    descriptive_stats = TRUE
+    TBI,
+    descriptive_stats = TRUE,
+    group = TBI
   ) |>
+  dplyr::filter(TBI) |>
   dplyr::left_join(
     trauma_data_clean |>
-      injury_case_count(Year, BODY_REGION_CATEGORY_LEVEL_2_1) |>
+      injury_case_count(Year, TBI) |>
       dplyr::mutate(
         percent = n / sum(n),
         percent_label = traumar::pretty_percent(percent, n_decimal = 2),
         .by = Year
       ) |>
-      dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+      dplyr::filter(TBI) |>
       dplyr::select(-n),
-    by = dplyr::join_by(Year, BODY_REGION_CATEGORY_LEVEL_2_1)
+    by = dplyr::join_by(Year, TBI)
   )
 
 ## injury events ----
 tbi_related_injuries <- trauma_data_clean |>
-  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
   injury_incident_count(
     Year,
-    BODY_REGION_CATEGORY_LEVEL_2_1,
-    descriptive_stats = TRUE
+    TBI,
+    descriptive_stats = TRUE,
+    group = TBI
   ) |>
-  dplyr::select(-tidyselect::matches("Reinjury")) |>
+  dplyr::filter(TBI) |>
   dplyr::left_join(
     trauma_data_clean |>
-      injury_incident_count(Year, BODY_REGION_CATEGORY_LEVEL_2_1) |>
+      injury_incident_count(Year, TBI) |>
       dplyr::mutate(
         percent = n / sum(n),
         percent_label = traumar::pretty_percent(percent, n_decimal = 2),
         .by = Year
       ) |>
-      dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+      dplyr::filter(TBI) |>
       dplyr::select(-n),
-    by = dplyr::join_by(Year, BODY_REGION_CATEGORY_LEVEL_2_1)
-  )
+    by = dplyr::join_by(Year, TBI)
+  ) |>
+  dplyr::select(-tidyselect::matches("reinjury"))
 
 ## injury events ----
 tbi_related_patients <- trauma_data_clean |>

@@ -339,7 +339,7 @@ calc_age_adjusted_rate <- function(
 ###   - prop_label: formatted percent label using traumar::pretty_percent()
 ### This assumes that the input data is already grouped and counted, with a column `n`
 ###_____________________________________________________________________________
-add_change_metrics <- function(df) {
+add_change_metrics <- function(df, group = NULL) {
   df |>
     dplyr::mutate(
       # Compute raw numeric change from previous row
@@ -354,7 +354,8 @@ add_change_metrics <- function(df) {
         !is.na(prop_change),
         traumar::pretty_percent(prop_change, n_decimal = 2),
         NA_character_
-      )
+      ),
+      .by = {{ group }}
     )
 }
 
@@ -391,7 +392,12 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
   ### Equivalent to counting unique inpatient visits based on Unique_Incident_ID
   ### Supports dynamic grouping via tidy evaluation (bare column names in ...)
   ###_____________________________________________________________________________
-  injury_case_count <- function(df, ..., descriptive_stats = FALSE) {
+  injury_case_count <- function(
+    df,
+    ...,
+    descriptive_stats = FALSE,
+    group = NULL
+  ) {
     # Capture grouping variables as symbols and convert to character strings for .by and joins
     grouping_syms <- rlang::ensyms(...)
     grouping_vars <- sapply(grouping_syms, rlang::as_string)
@@ -416,7 +422,7 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
     # When descriptive_stats = TRUE, add change metrics (numeric and percent change)
     out <- temp |>
       dplyr::count(...) |>
-      add_change_metrics()
+      add_change_metrics(group = {{ group }})
 
     cli::cli_alert_success(
       "Returning the count(s) of total unique inpatient injury cases and descriptive statistics."
@@ -429,7 +435,12 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
   ### Custom function to get unique count of injuries in Patient Registry
   ### A true estimation of the number of incidents (not encounters or records)
   ###_____________________________________________________________________________
-  injury_incident_count <- function(df, ..., descriptive_stats = FALSE) {
+  injury_incident_count <- function(
+    df,
+    ...,
+    descriptive_stats = FALSE,
+    group = NULL
+  ) {
     # Capture grouping variables from bare column names (e.g., Year, County)
     grouping_syms <- rlang::ensyms(...) # capture as symbols for tidy eval
     grouping_vars <- sapply(grouping_syms, rlang::as_string) # convert to character for .by and join
@@ -464,7 +475,7 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
     # Step 2: Count events and calculate change metrics
     out <- temp |>
       dplyr::count(!!!grouping_syms) |>
-      add_change_metrics() |>
+      add_change_metrics(group = {{ group }}) |>
       dplyr::left_join(stat, by = grouping_vars) # <- this fixes the join
 
     cli::cli_alert_success(
@@ -481,7 +492,12 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
   ### Groups first, then deduplicates per group to count unique patients correctly
   ### Supports flexible grouping via tidy evaluation (bare column names in ...)
   ###_____________________________________________________________________________
-  injury_patient_count <- function(df, ..., descriptive_stats = FALSE) {
+  injury_patient_count <- function(
+    df,
+    ...,
+    descriptive_stats = FALSE,
+    group = NULL
+  ) {
     # Capture grouping variables as symbols and convert to character strings for .by and joins
     grouping_syms <- rlang::ensyms(...)
     grouping_vars <- sapply(grouping_syms, rlang::as_string)
@@ -509,7 +525,7 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
     # When descriptive_stats = TRUE, add change metrics for counts
     out <- temp |>
       dplyr::count(!!!grouping_syms) |>
-      add_change_metrics()
+      add_change_metrics(group = {{ group }})
 
     cli::cli_alert_success(
       "Returning the count(s) of total unique patients who had a trauma center visit and have a non-missing unique patient ID and descriptive statistics."
@@ -524,7 +540,11 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
   ### Counts patients with non-missing Unique_Patient_ID, counts reinjured patients by year
   ### Optionally returns descriptive statistics including reinjury counts, proportions, and change metrics
   ###_____________________________________________________________________________
-  reinjury_patient_count <- function(df, ..., descriptive_stats = FALSE) {
+  reinjury_patient_count <- function(
+    df,
+    ...,
+    descriptive_stats = FALSE
+  ) {
     # Capture grouping variables as symbols and convert to character strings for .by and joins
     grouping_syms <- rlang::ensyms(...)
     grouping_vars <- sapply(grouping_syms, rlang::as_string)
@@ -599,7 +619,11 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
   ### Optionally returns descriptive statistics including reinjury case counts, proportions,
   ### and change metrics.
   ###_____________________________________________________________________________
-  reinjury_case_count <- function(df, ..., descriptive_stats = FALSE) {
+  reinjury_case_count <- function(
+    df,
+    ...,
+    descriptive_stats = FALSE
+  ) {
     # Capture grouping variables as symbols and convert to character strings for .by and joins
     grouping_syms <- rlang::ensyms(...)
     grouping_vars <- sapply(grouping_syms, rlang::as_string)
