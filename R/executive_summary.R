@@ -884,6 +884,76 @@ fall_related_injuries <-
     )
   )
 
+
+###___________________________________________________________________________
+# Traumatic Brain Injury ----
+###___________________________________________________________________________
+
+## cases ----
+tbi_related_cases <- trauma_data_clean |>
+  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+  injury_case_count(
+    Year,
+    BODY_REGION_CATEGORY_LEVEL_2_1,
+    descriptive_stats = TRUE
+  ) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_case_count(Year, BODY_REGION_CATEGORY_LEVEL_2_1) |>
+      dplyr::mutate(
+        percent = n / sum(n),
+        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
+        .by = Year
+      ) |>
+      dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+      dplyr::select(-n),
+    by = dplyr::join_by(Year, BODY_REGION_CATEGORY_LEVEL_2_1)
+  )
+
+## injury events ----
+tbi_related_injuries <- trauma_data_clean |>
+  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+  injury_incident_count(
+    Year,
+    BODY_REGION_CATEGORY_LEVEL_2_1,
+    descriptive_stats = TRUE
+  ) |>
+  dplyr::select(-tidyselect::matches("Reinjury")) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_incident_count(Year, BODY_REGION_CATEGORY_LEVEL_2_1) |>
+      dplyr::mutate(
+        percent = n / sum(n),
+        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
+        .by = Year
+      ) |>
+      dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+      dplyr::select(-n),
+    by = dplyr::join_by(Year, BODY_REGION_CATEGORY_LEVEL_2_1)
+  )
+
+## injury events ----
+tbi_related_patients <- trauma_data_clean |>
+  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+  injury_patient_count(
+    Year,
+    BODY_REGION_CATEGORY_LEVEL_2_1,
+    descriptive_stats = TRUE
+  ) |>
+  dplyr::select(-tidyselect::matches("Reinjury")) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_incident_count(Year, BODY_REGION_CATEGORY_LEVEL_2_1) |>
+      dplyr::mutate(
+        percent = n / sum(n),
+        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
+        .by = Year
+      ) |>
+      dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
+      dplyr::select(-n),
+    by = dplyr::join_by(Year, BODY_REGION_CATEGORY_LEVEL_2_1)
+  )
+
 ###_____________________________________________________________________________
 # Motor vehicle, boating, and air incidents ----
 ###_____________________________________________________________________________

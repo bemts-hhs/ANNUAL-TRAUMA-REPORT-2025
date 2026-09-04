@@ -39,106 +39,24 @@ nature_injury_mapping <- nature_injury_mapping |>
 ###___________________________________________________________________________
 # TBI codes ----
 ###___________________________________________________________________________
-## get TBI codes utilized by Toby Yak to classify records ----
-tbi_codes <- c(
-  # C70 series
-  "C70.0",
-  "C71.0",
-  "C71.1",
-  "C71.2",
-  "C71.3",
-  "C71.4",
-  "C71.5",
-  "C71.6",
-  "C71.7",
-  "C71.8",
-
-  # C72 series
-  "C72.50",
-  "C72.59",
-
-  # C79 series
-  "C79.31",
-  "C79.32",
-  "C79.49",
-
-  # D32 / D33 series
-  "D32.0",
-  "D32.9",
-  "D33.3",
-  "D33.2",
-
-  # G-series
-  "G04",
-  "G05",
-  "G06.0",
-  "G06.1",
-  "G93.1",
-
-  # I60 block (entered as 160 in your criteria)
-  "I60",
-  # 160.9 excluded by the original filter logic, so not included
-
-  # Remaining I-series
-  "I61",
-  "I62.1",
-  "I65",
-  "I66",
-  "G45",
-  "I67.89",
-  "I67.9",
-
-  # T-series toxic effects etc.
-  "T41",
-  "T42",
-  "T43",
-  "T44",
-  "T51",
-  "T58",
-  "T71",
-  "T75.1XXA",
-  "T74.1",
-  "T74.4",
-
-  # S02 fractures
-  "S02.0XXA",
-  "S02.0XXB",
-  "S02.1",
-  "S02.91XA",
-
-  # S06 concussion codes
-  "S06.0X0A",
-  "S06.0X1A",
-  "S06.0X9A",
-
-  # S06 other intracranial injuries
-  "S06.31",
-  "S06.32",
-  "S06.33",
-  "S06.4",
-  "S06.5",
-  "S06.6",
-  "S06.36",
-  "S06.8",
-  "S06.9"
-)
 
 ## tbi codes from matrix
-tbi_matrix_codes <- nature_injury_mapping |> 
-  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2 == "TBI") |> 
-  dplyr::pull(ICD_10_CODE_FULL) |> 
+tbi_matrix_codes <- nature_injury_mapping |>
+  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2 == "TBI") |>
+  dplyr::pull(ICD_10_CODE_FULL) |>
   sort()
 
-## union the tbi codes
-tbi_codes_full <- base::union(tbi_codes, tbi_matrix_codes) |> unique() |> sort()
+## make the unioned codes more suitable for regex ----
+tbi_codes_sub <- gsub(
+  pattern = "\\.",
+  replacement = "\\\\.",
+  x = tbi_matrix_codes
+)
 
 ## transform raw codes into a regex ----
 tbi_codes_pattern <- paste0(
   "(?:",
-  paste0(
-    gsub(pattern = "\\.", replacement = "\\\\.", x = tbi_codes_full),
-    collapse = "|"
-  ),
+  paste0(tbi_codes_sub, collapse = "|"),
   ")"
 )
 
