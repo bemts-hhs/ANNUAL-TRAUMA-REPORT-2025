@@ -934,27 +934,43 @@ tbi_related_injuries <- trauma_data_clean |>
   ) |>
   dplyr::select(-tidyselect::matches("reinjury"))
 
-## injury events ----
-tbi_related_patients <- trauma_data_clean |>
-  dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
-  injury_patient_count(
-    Year,
-    BODY_REGION_CATEGORY_LEVEL_2_1,
-    descriptive_stats = TRUE
-  ) |>
-  dplyr::select(-tidyselect::matches("Reinjury")) |>
-  dplyr::left_join(
-    trauma_data_clean |>
-      injury_incident_count(Year, BODY_REGION_CATEGORY_LEVEL_2_1) |>
-      dplyr::mutate(
-        percent = n / sum(n),
-        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
-        .by = Year
-      ) |>
-      dplyr::filter(BODY_REGION_CATEGORY_LEVEL_2_1 == "TBI") |>
-      dplyr::select(-n),
-    by = dplyr::join_by(Year, BODY_REGION_CATEGORY_LEVEL_2_1)
-  )
+### extract annual tbi percentages of total injury events for caption ----
+tbi_pct_labels <- tbi_related_injuries |> dplyr::pull(percent_label)
+
+### take pct labels and make it into a caption ----
+tbi_caption <- paste0(
+  "[",
+  paste0(tbi_pct_labels[1:length(tbi_pct_labels) - 1], collapse = ", "),
+  ", and ",
+  tbi_pct_labels[length(tbi_pct_labels)],
+  "]"
+)
+
+### tbi injury event plot ----
+tbi_injury_event_plot <- 
+
+  
+  ## patients  ----
+  tbi_related_patients <- trauma_data_clean |>
+    injury_patient_count(
+      Year,
+      TBI,
+      descriptive_stats = TRUE,
+      group = TBI
+    ) |>
+    dplyr::filter(TBI) |>
+    dplyr::left_join(
+      trauma_data_clean |>
+        injury_patient_count(Year, TBI) |>
+        dplyr::mutate(
+          percent = n / sum(n),
+          percent_label = traumar::pretty_percent(percent, n_decimal = 2),
+          .by = Year
+        ) |>
+        dplyr::filter(TBI) |>
+        dplyr::select(-n),
+      by = dplyr::join_by(Year, TBI)
+    )
 
 ###_____________________________________________________________________________
 # Motor vehicle, boating, and air incidents ----
@@ -981,7 +997,7 @@ motor_vehicle_related_cases <-
     increase = round((MVC - dplyr::lag(MVC)) / dplyr::lag(MVC), digits = 3),
     increase_label = traumar::pretty_percent(
       (MVC - dplyr::lag(MVC)) / dplyr::lag(MVC),
-      digits = 2
+      n_decimal = 2
     )
   )
 
@@ -1006,7 +1022,7 @@ motor_vehicle_related_injuries <-
     increase = round((MVC - dplyr::lag(MVC)) / dplyr::lag(MVC), digits = 3),
     increase_label = traumar::pretty_percent(
       (MVC - dplyr::lag(MVC)) / dplyr::lag(MVC),
-      digits = 2
+      n_decimal = 2
     )
   )
 
@@ -1069,7 +1085,6 @@ gt::gtsave(
   filename = "mvc_injury_table.png",
   path = output_folder
 )
-
 
 ###_____________________________________________________________________________
 # Reinjury ----

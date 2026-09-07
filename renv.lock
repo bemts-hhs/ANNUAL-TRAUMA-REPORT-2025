@@ -1161,6 +1161,59 @@
       "Maintainer": "Thomas Lin Pedersen <thomas.pedersen@posit.co>",
       "Repository": "CRAN"
     },
+    "ggrepel": {
+      "Package": "ggrepel",
+      "Version": "0.9.8",
+      "Source": "Repository",
+      "Authors@R": "c( person(\"Kamil\", \"Slowikowski\", email = \"kslowikowski@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-2843-6370\")), person(\"Teun\", \"van den Brand\", role = \"ctb\", comment = c(ORCID = \"0000-0002-9335-7468\")), person(\"Alicia\", \"Schep\", role = \"ctb\", comment = c(ORCID = \"0000-0002-3915-0618\")), person(\"Sean\", \"Hughes\", role = \"ctb\", comment = c(ORCID = \"0000-0002-9409-9405\")), person(\"Trung Kien\", \"Dang\", role = \"ctb\", comment = c(ORCID = \"0000-0001-7562-6495\")), person(\"Saulius\", \"Lukauskas\", role = \"ctb\"), person(\"Jean-Olivier\", \"Irisson\", role = \"ctb\", comment = c(ORCID = \"0000-0003-4920-3880\")), person(\"Zhian N\", \"Kamvar\", role = \"ctb\", comment = c(ORCID = \"0000-0003-1458-7108\")), person(\"Thompson\", \"Ryan\", role = \"ctb\", comment = c(ORCID = \"0000-0002-0450-8181\")), person(\"Dervieux\", \"Christophe\", role = \"ctb\", comment = c(ORCID = \"0000-0003-4474-2498\")), person(\"Yutani\", \"Hiroaki\", role = \"ctb\"), person(\"Pierre\", \"Gramme\", role = \"ctb\"), person(\"Amir Masoud\", \"Abdol\", role = \"ctb\"), person(\"Malcolm\", \"Barrett\", role = \"ctb\", comment = c(ORCID = \"0000-0003-0299-5825\")), person(\"Robrecht\", \"Cannoodt\", role = \"ctb\", comment = c(ORCID = \"0000-0003-3641-729X\")), person(\"Michał\", \"Krassowski\", role = \"ctb\", comment = c(ORCID = \"0000-0002-9638-7785\")), person(\"Michael\", \"Chirico\", role = \"ctb\", comment = c(ORCID = \"0000-0003-0787-087X\")), person(\"Pedro\", \"Aphalo\", role = \"ctb\", comment = c(ORCID = \"0000-0003-3385-972X\")), person(\"Francis\", \"Barton\", role = \"ctb\") )",
+      "Title": "Automatically Position Non-Overlapping Text Labels with 'ggplot2'",
+      "Description": "Provides text and label geoms for 'ggplot2' that help to avoid overlapping text labels. Labels repel away from each other and away from the data points.",
+      "Depends": [
+        "R (>= 4.1.0)",
+        "ggplot2 (>= 3.5.2)"
+      ],
+      "Imports": [
+        "grid",
+        "Rcpp",
+        "rlang (>= 1.1.6)",
+        "S7",
+        "scales (>= 1.4.0)",
+        "withr (>= 3.0.2)"
+      ],
+      "Suggests": [
+        "knitr",
+        "rmarkdown",
+        "testthat",
+        "svglite",
+        "vdiffr",
+        "gridExtra",
+        "ggpp",
+        "patchwork",
+        "devtools",
+        "prettydoc",
+        "ggbeeswarm",
+        "dplyr",
+        "magrittr",
+        "readr",
+        "stringr",
+        "marquee",
+        "rsvg",
+        "sf"
+      ],
+      "VignetteBuilder": "knitr",
+      "License": "GPL-3 | file LICENSE",
+      "URL": "https://ggrepel.slowkow.com/, https://github.com/slowkow/ggrepel",
+      "BugReports": "https://github.com/slowkow/ggrepel/issues",
+      "RoxygenNote": "7.3.3",
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Encoding": "UTF-8",
+      "NeedsCompilation": "yes",
+      "Author": "Kamil Slowikowski [aut, cre] (ORCID: <https://orcid.org/0000-0002-2843-6370>), Teun van den Brand [ctb] (ORCID: <https://orcid.org/0000-0002-9335-7468>), Alicia Schep [ctb] (ORCID: <https://orcid.org/0000-0002-3915-0618>), Sean Hughes [ctb] (ORCID: <https://orcid.org/0000-0002-9409-9405>), Trung Kien Dang [ctb] (ORCID: <https://orcid.org/0000-0001-7562-6495>), Saulius Lukauskas [ctb], Jean-Olivier Irisson [ctb] (ORCID: <https://orcid.org/0000-0003-4920-3880>), Zhian N Kamvar [ctb] (ORCID: <https://orcid.org/0000-0003-1458-7108>), Thompson Ryan [ctb] (ORCID: <https://orcid.org/0000-0002-0450-8181>), Dervieux Christophe [ctb] (ORCID: <https://orcid.org/0000-0003-4474-2498>), Yutani Hiroaki [ctb], Pierre Gramme [ctb], Amir Masoud Abdol [ctb], Malcolm Barrett [ctb] (ORCID: <https://orcid.org/0000-0003-0299-5825>), Robrecht Cannoodt [ctb] (ORCID: <https://orcid.org/0000-0003-3641-729X>), Michał Krassowski [ctb] (ORCID: <https://orcid.org/0000-0002-9638-7785>), Michael Chirico [ctb] (ORCID: <https://orcid.org/0000-0003-0787-087X>), Pedro Aphalo [ctb] (ORCID: <https://orcid.org/0000-0003-3385-972X>), Francis Barton [ctb]",
+      "Maintainer": "Kamil Slowikowski <kslowikowski@gmail.com>",
+      "Repository": "CRAN"
+    },
     "glue": {
       "Package": "glue",
       "Version": "1.8.1",
@@ -1273,6 +1326,62 @@
       "Maintainer": "Richard Iannone <rich@posit.co>",
       "Repository": "CRAN"
     },
+    "gtExtras": {
+      "Package": "gtExtras",
+      "Version": "0.6.2",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Extending 'gt' for Beautiful HTML Tables",
+      "Authors@R": "c( person(\"Thomas\", \"Mock\", , \"j.thomasmock@gmail.com\", role = c(\"aut\", \"cre\", \"cph\")), person(\"Daniel D.\", \"Sjoberg\", , \"danield.sjoberg@gmail.com\", role = \"ctb\", comment = c(ORCID = \"0000-0003-0862-2018\")) )",
+      "Description": "Provides additional functions for creating beautiful tables with 'gt'. The functions are generally wrappers around boilerplate or adding opinionated niche capabilities and helpers functions.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/jthomasmock/gtExtras, https://jthomasmock.github.io/gtExtras/",
+      "BugReports": "https://github.com/jthomasmock/gtExtras/issues",
+      "Depends": [
+        "R (>= 3.6.0)",
+        "gt (>= 1.0.0)"
+      ],
+      "Imports": [
+        "commonmark",
+        "dplyr (>= 1.0.9)",
+        "fontawesome (>= 0.4.0)",
+        "ggplot2 (>= 3.4.0)",
+        "glue (>= 1.6.1)",
+        "htmltools (>= 0.5.3)",
+        "paletteer (>= 1.4.0)",
+        "rlang (>= 1.0.4)",
+        "scales (>= 1.2.0)",
+        "knitr (>= 1.35)",
+        "cli (>= 3.6.0)"
+      ],
+      "Suggests": [
+        "base64enc (>= 0.1-3)",
+        "bitops (>= 1.0.6)",
+        "covr",
+        "fs (>= 1.5.2)",
+        "hms",
+        "magrittr (>= 1.5)",
+        "rvest (>= 1.0.3)",
+        "sass (>= 0.1.1)",
+        "stringr (>= 1.3.1)",
+        "svglite (>= 2.1.0)",
+        "testthat (>= 3.0.0)",
+        "tibble (>= 3.0.0)",
+        "tidyr (>= 1.0.0)",
+        "tidyselect (>= 1.0.0)",
+        "webshot2 (>= 0.1.0)",
+        "xml2 (>= 1.3.3)",
+        "lifecycle (>= 1.0.0)"
+      ],
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.3",
+      "Config/testthat/edition": "3",
+      "Config/testthat/parallel": "true",
+      "NeedsCompilation": "no",
+      "Author": "Thomas Mock [aut, cre, cph], Daniel D. Sjoberg [ctb] (ORCID: <https://orcid.org/0000-0003-0862-2018>)",
+      "Maintainer": "Thomas Mock <j.thomasmock@gmail.com>",
+      "Repository": "CRAN"
+    },
     "gtable": {
       "Package": "gtable",
       "Version": "0.3.6",
@@ -1312,6 +1421,45 @@
       "Author": "Hadley Wickham [aut], Thomas Lin Pedersen [aut, cre], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Thomas Lin Pedersen <thomas.pedersen@posit.co>",
       "Repository": "CRAN"
+    },
+    "gtxlsx": {
+      "Package": "gtxlsx",
+      "Version": "0.1.0",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Write 'gt' and HTML Tables into 'openxlsx2' Workbooks",
+      "Authors@R": "c( person(\"Jan Marvin\", \"Garbuszus\", email = \"jan.garbuszus@ruhr-uni-bochum.de\", role = c(\"aut\", \"cre\")))",
+      "Description": "Turns a 'gt' table into a range of cells in an 'openxlsx2' workbook, keeping the heading, column spanners, row groups, stub, summary rows, footnotes and the styling set through 'gt'. Numbers stay numbers wherever an Excel number format can reproduce what 'gt' shows. A second entry point does the same for a plain HTML table, so output from other table packages can be written to a worksheet as well.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/JanMarvin/gtxlsx",
+      "BugReports": "https://github.com/JanMarvin/gtxlsx/issues",
+      "Encoding": "UTF-8",
+      "Depends": [
+        "R (>= 4.1.0)"
+      ],
+      "Imports": [
+        "grDevices",
+        "gt (>= 0.10.0)",
+        "markdown",
+        "openxlsx2 (>= 1.0)",
+        "utils",
+        "xml2"
+      ],
+      "Suggests": [
+        "lt",
+        "testthat (>= 3.0.0)"
+      ],
+      "Config/testthat/edition": "3",
+      "Config/roxygen2/version": "8.1.0",
+      "Config/pak/sysreqs": "cmake make libicu-dev libuv1-dev libxml2-dev libssl-dev libnode-dev",
+      "Repository": "https://janmarvin.r-universe.dev",
+      "NeedsCompilation": "no",
+      "Author": "Jan Marvin Garbuszus [aut, cre]",
+      "Maintainer": "Jan Marvin Garbuszus <jan.garbuszus@ruhr-uni-bochum.de>",
+      "RemoteType": "repository",
+      "RemoteUrl": "https://github.com/JanMarvin/gtxlsx",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "37075111a1e2a91c34ea647baeb30071c5d09c0a"
     },
     "highr": {
       "Package": "highr",
@@ -2006,6 +2154,51 @@
       "Author": "Juergen Gross [aut], Uwe Ligges [aut, cre]",
       "Maintainer": "Uwe Ligges <ligges@statistik.tu-dortmund.de>",
       "NeedsCompilation": "no",
+      "Repository": "CRAN"
+    },
+    "openxlsx2": {
+      "Package": "openxlsx2",
+      "Version": "1.29",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Read, Write and Edit 'xlsx' Files",
+      "Language": "en-US",
+      "Authors@R": "c( person(\"Jordan Mark\", \"Barbone\", email = \"jmbarbone@gmail.com\", role = \"aut\", comment = c(ORCID = \"0000-0001-9788-3628\")), person(\"Jan Marvin\", \"Garbuszus\", email = \"jan.garbuszus@ruhr-uni-bochum.de\", role = c(\"aut\", \"cre\")), person(\"Olivier\", \"Roy\", role = \"ctb\"), person(family = \"openxlsx authors\", role = \"cph\", comment = \"openxlsx package\"), person(\"Arseny\", \"Kapoulkine\", role = c(\"ctb\", \"cph\"), comment = \"Author of included pugixml code\") )",
+      "Description": "Simplifies the creation of 'xlsx' files by providing a high level interface to writing, styling and editing worksheets.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://janmarvin.github.io/openxlsx2/, https://github.com/JanMarvin/openxlsx2",
+      "BugReports": "https://github.com/JanMarvin/openxlsx2/issues",
+      "Depends": [
+        "R (>= 3.5.0)"
+      ],
+      "Imports": [
+        "R6",
+        "Rcpp",
+        "grDevices",
+        "stringi",
+        "utils"
+      ],
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Suggests": [
+        "encharter",
+        "ggplot2",
+        "knitr",
+        "mschart (>= 0.4)",
+        "openssl",
+        "rmarkdown",
+        "rvg",
+        "testthat (>= 3.0.0)",
+        "zip"
+      ],
+      "VignetteBuilder": "knitr",
+      "Encoding": "UTF-8",
+      "Config/roxygen2/version": "8.1.0",
+      "Config/testthat/edition": "3",
+      "NeedsCompilation": "yes",
+      "Author": "Jordan Mark Barbone [aut] (ORCID: <https://orcid.org/0000-0001-9788-3628>), Jan Marvin Garbuszus [aut, cre], Olivier Roy [ctb], openxlsx authors [cph] (openxlsx package), Arseny Kapoulkine [ctb, cph] (Author of included pugixml code)",
+      "Maintainer": "Jan Marvin Garbuszus <jan.garbuszus@ruhr-uni-bochum.de>",
       "Repository": "CRAN"
     },
     "pak": {
@@ -2895,6 +3088,44 @@
       "NeedsCompilation": "no",
       "Author": "Hadley Wickham [aut], Thomas Lin Pedersen [cre, aut] (<https://orcid.org/0000-0002-5147-4711>), Dana Seidel [aut], Posit Software, PBC [cph, fnd] (03wc8by49)",
       "Maintainer": "Thomas Lin Pedersen <thomas.pedersen@posit.co>",
+      "Repository": "CRAN"
+    },
+    "sessioninfo": {
+      "Package": "sessioninfo",
+      "Version": "1.2.4",
+      "Source": "Repository",
+      "Title": "R Session Information",
+      "Authors@R": "c( person(\"Gábor\", \"Csárdi\", , \"csardi.gabor@gmail.com\", role = \"cre\"), person(\"Hadley\", \"Wickham\", role = \"aut\"), person(\"Winston\", \"Chang\", role = \"aut\"), person(\"Robert\", \"Flight\", role = \"aut\"), person(\"Kirill\", \"Müller\", role = \"aut\"), person(\"Jim\", \"Hester\", role = \"aut\"), person(\"R Core team\", role = \"ctb\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")) )",
+      "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
+      "Description": "Query and print information about the current R session.  It is similar to 'utils::sessionInfo()', but includes more information about packages, and where they were installed from.",
+      "License": "GPL-2",
+      "URL": "https://sessioninfo.r-lib.org, https://github.com/r-lib/sessioninfo",
+      "BugReports": "https://github.com/r-lib/sessioninfo/issues",
+      "Depends": [
+        "R (>= 3.4)"
+      ],
+      "Imports": [
+        "cli (>= 3.1.0)",
+        "tools",
+        "utils"
+      ],
+      "Suggests": [
+        "callr",
+        "covr",
+        "gh",
+        "reticulate",
+        "rmarkdown",
+        "testthat (>= 3.2.0)",
+        "withr"
+      ],
+      "Config/Needs/website": "pkgdown, tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Config/testthat/parallel": "true",
+      "Config/usethis/last-upkeep": "2025-05-07",
+      "Encoding": "UTF-8",
+      "Config/roxygen2/version": "8.0.0",
+      "NeedsCompilation": "no",
+      "Author": "Gábor Csárdi [cre], Hadley Wickham [aut], Winston Chang [aut], Robert Flight [aut], Kirill Müller [aut], Jim Hester [aut], R Core team [ctb], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
       "Repository": "CRAN"
     },
     "stringi": {

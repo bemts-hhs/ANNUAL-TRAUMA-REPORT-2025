@@ -10,6 +10,7 @@ trauma_data_2022 <- readr::read_csv(file = trauma_data_path_2022)
 trauma_data_2023 <- readr::read_csv(file = trauma_data_path_2023)
 trauma_data_2024 <- readr::read_csv(file = trauma_data_path_2024)
 trauma_data_2025 <- readr::read_csv(file = trauma_data_path_2025)
+trauma_data_2026 <- readr::read_csv(file = trauma_data_path_2026)
 
 ## union the trauma data ----
 trauma_data <- dplyr::bind_rows(
@@ -134,6 +135,18 @@ trauma_data_clean <- trauma_data |>
       CAUSE_OF_INJURY_AR_2,
       CAUSE_OF_INJURY_AR_1
     )
+  ) |>
+  dplyr::mutate(
+    dplyr::across(
+      c(Patient_Gender, Sex_Assigned_at_Birth),
+      ~ stringr::str_squish(.)
+    ),
+    Sex = dplyr::case_when(
+      is.na(Sex_Assigned_at_Birth) & !is.na(Patient_Gender) ~ Patient_Gender,
+      TRUE ~ Sex_Assigned_at_Birth
+    ),
+    Sex = ifelse(is.na(Sex), "Not Known/Not Recorded", Sex),
+    .after = Sex_Assigned_at_Birth
   ) |>
   dplyr::mutate(
     TBI = grepl(

@@ -4,6 +4,7 @@
 plot_folder <- Sys.getenv("plot_path")
 output_folder <- Sys.getenv("output_path")
 death_path <- Sys.getenv("death_folder")
+error_path <- Sys.getenv("error_path")
 
 # clinical data
 
@@ -13,6 +14,7 @@ trauma_data_path_2022 <- Sys.getenv("trauma_data_2022")
 trauma_data_path_2023 <- Sys.getenv("trauma_data_2023")
 trauma_data_path_2024 <- Sys.getenv("trauma_data_2024")
 trauma_data_path_2025 <- Sys.getenv("trauma_data_2025")
+trauma_data_path_2026 <- Sys.getenv("trauma_data_2026")
 
 # ems environment variables ----
 ems_data_path <- Sys.getenv("ems_data_folder")
