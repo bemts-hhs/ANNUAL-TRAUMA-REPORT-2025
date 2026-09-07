@@ -160,6 +160,89 @@ ggplot2::ggsave(
 total_sex_errors_per_facility <- trauma_2025_2026 |>
   dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
   dplyr::summarize(
-    sex_assigned_at_birth_errors = sum(Patient_Gender == "Not Known/Not Recorded", na.rm = TRUE),
-    
+    errors = sum(
+      Patient_Gender == "Not Known/Not Recorded",
+      na.rm = TRUE
+    ),
+    total_records = dplyr::n(),
+    percent_error = traumar::pretty_percent(
+      errors / total_records,
+      n_decimal = 2
+    ),
+    .by = c(Year, `Current Facility Name`)
+  ) |>
+  dplyr::arrange(`Current Facility Name`, Year) |>
+  dplyr::mutate(total_errors = sum(errors), .by = `Current Facility Name`) |>
+  dplyr::filter(total_errors > 4)
+
+### save error counts by facility to disk ----
+readr::write_csv(
+  x = total_sex_errors_per_facility,
+  file = paste0(error_path, "/total_sex_errors_per_facility.csv")
+)
+
+## loop through facilities idenfieid in `total_sex_errors_per_facility` ----
+# save each facility's pertinent record data to disk to send it in an email
+# asking for fixes to support for fixes
+
+### get facility names ----
+error_facility_names <- unique(
+  total_sex_errors_per_facility$`Current Facility Name`
+) |>
+  sort()
+
+### get a smaller data.frame for reporting ----
+trauma_2025_2026_subset <- trauma_2025_2026 |>
+  dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
+  dplyr::select(
+    Facility_State_ID,
+    `Current Facility Name` = Facility_Name,
+    Incident_Number,
+    Incident_Created,
+    Incident_Original_Created_On,
+    Incident_Date,
+    ED_Acute_Care_Admission_Date,
+    Patient_DOB,
+    Patient_Gender
   )
+
+### loop through facilities and save files to disk for each facility ----
+for (f in error_facility_names) {
+  # get a directory for current facility
+  # check if it exists
+  if (
+    !fs::dir_exists(
+      glue::glue("{error_path}/{f}")
+    )
+  ) {
+    # current path
+    current_error_path <- glue::glue("{error_path}/{f}")
+
+    # create if it doesn't
+    fs::dir_create(path = current_error_path)
+  }
+
+  # subset
+  data <- trauma_2025_2026_subset |>
+    dplyr::distinct(
+      `Current Facility Name`,
+      Incident_Number,
+      .keep_all = TRUE
+    ) |>
+    dplyr::filter(
+      `Current Facility Name` == f,
+      Patient_Gender == "Not Known/Not Recorded"
+    ) |>
+    dplyr::select(-Patient_Gender)
+
+  # get the csv file name
+  file_name <- trimws(tolower(f)) |>
+    gsub(pattern = ",|'", replacement = "") |>
+    gsub(pattern = "\\s|\\s-\\s|\\.\\s", replacement = "_")
+
+  # write data to disk
+  readr::write_csv(
+    x = data,
+    file = glue::glue("{current_error_path}/{file_name}.csv")
+  )
+}
