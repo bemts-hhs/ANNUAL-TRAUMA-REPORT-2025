@@ -196,7 +196,7 @@ trauma_2025_2026_subset <- trauma_2025_2026 |>
   dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
   dplyr::select(
     Facility_State_ID,
-    `Current Facility Name` = Facility_Name,
+    `Current Facility Name`,
     Incident_Number,
     Incident_Created,
     Incident_Original_Created_On,
@@ -204,20 +204,21 @@ trauma_2025_2026_subset <- trauma_2025_2026 |>
     ED_Acute_Care_Admission_Date,
     Patient_DOB,
     Patient_Gender
-  )
+  ) |>
+  dplyr::rename(Facility = `Current Facility Name`)
 
 ### loop through facilities and save files to disk for each facility ----
 for (f in error_facility_names) {
+  # current path
+  current_error_path <- glue::glue("{error_path}/{f}")
+
   # get a directory for current facility
   # check if it exists
   if (
     !fs::dir_exists(
-      glue::glue("{error_path}/{f}")
+      current_error_path
     )
   ) {
-    # current path
-    current_error_path <- glue::glue("{error_path}/{f}")
-
     # create if it doesn't
     fs::dir_create(path = current_error_path)
   }
@@ -225,12 +226,12 @@ for (f in error_facility_names) {
   # subset
   data <- trauma_2025_2026_subset |>
     dplyr::distinct(
-      `Current Facility Name`,
+      Facility,
       Incident_Number,
       .keep_all = TRUE
     ) |>
     dplyr::filter(
-      `Current Facility Name` == f,
+      Facility == f,
       Patient_Gender == "Not Known/Not Recorded"
     ) |>
     dplyr::select(-Patient_Gender)
