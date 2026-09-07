@@ -21,7 +21,7 @@ trauma_2025_2026 <- trauma_data_2025 |>
 ### summarize errors per year ----
 total_sex_errors <- trauma_2025_2026 |>
   dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
-  dplyr::count(Year, Patient_Gender)
+  dplyr::count(Year, Patient_Sex)
 
 #### save the state level errors to disk ----
 readr::write_csv(
@@ -36,7 +36,7 @@ total_sex_errors_months <- trauma_2025_2026 |>
   ) |>
   dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
   dplyr::summarize(
-    total_errors = sum(Patient_Gender == "Not Known/Not Recorded", na.rm = T),
+    total_errors = sum(Patient_Sex == "Not Known/Not Recorded", na.rm = T),
     records = dplyr::n(),
     pct_error = total_errors / records,
     .by = Month
@@ -161,7 +161,7 @@ total_sex_errors_per_facility <- trauma_2025_2026 |>
   dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
   dplyr::summarize(
     errors = sum(
-      Patient_Gender == "Not Known/Not Recorded",
+      Patient_Sex == "Not Known/Not Recorded",
       na.rm = TRUE
     ),
     total_records = dplyr::n(),
@@ -203,7 +203,8 @@ trauma_2025_2026_subset <- trauma_2025_2026 |>
     Incident_Date,
     ED_Acute_Care_Admission_Date,
     Patient_DOB,
-    Patient_Gender
+    Patient_Sex,
+    Sex_Assigned_at_Birth
   ) |>
   dplyr::rename(Facility = `Current Facility Name`)
 
@@ -232,9 +233,9 @@ for (f in error_facility_names) {
     ) |>
     dplyr::filter(
       Facility == f,
-      Patient_Gender == "Not Known/Not Recorded"
+      Patient_Sex == "Not Known/Not Recorded"
     ) |>
-    dplyr::select(-Patient_Gender)
+    dplyr::select(-Patient_Sex)
 
   # get the csv file name
   file_name <- trimws(tolower(f)) |>
