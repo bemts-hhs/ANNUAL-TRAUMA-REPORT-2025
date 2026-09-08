@@ -13,34 +13,20 @@
 
 # get overall counts of gender ----
 gender_counts <- trauma_data_clean |>
-  dplyr::mutate(
-    Sex_Assigned_at_Birth = dplyr::case_when(
-      is.na(Sex_Assigned_at_Birth) & !is.na(Patient_Gender) ~ Patient_Gender,
-      TRUE ~ Sex_Assigned_at_Birth
-    ),
-    dplyr::across(
-      c(Patient_Gender, Sex_Assigned_at_Birth),
-      ~ stringr::str_squish(.)
-    ),
-    dplyr::across(
-      c(Patient_Gender, Sex_Assigned_at_Birth),
-      ~ ifelse(is.na(.), "Not Known/Not Recorded", .)
-    )
-  ) |>
   injury_patient_count(
     Year,
-    Sex = Sex_Assigned_at_Birth,
+    Patient_Sex,
     descriptive_stats = TRUE,
-    group = Sex
+    group = Patient_Sex
   ) |>
   dplyr::mutate(
-    Sex = ifelse(
-      grepl(pattern = "not", x = Sex, ignore.case = TRUE),
+    Patient_Sex = ifelse(
+      grepl(pattern = "not", x = Patient_Sex, ignore.case = TRUE),
       "Missing",
-      Sex
+      Patient_Sex
     )
   ) |>
-  dplyr::arrange(Year, Sex)
+  dplyr::arrange(Patient_Sex, Year)
 
 # get proportions of patients by gender over the years ----
 gender_proportions <- trauma_data_clean |>

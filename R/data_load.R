@@ -137,18 +137,6 @@ trauma_data_clean <- trauma_data |>
     )
   ) |>
   dplyr::mutate(
-    dplyr::across(
-      c(Patient_Gender, Sex_Assigned_at_Birth),
-      ~ stringr::str_squish(.)
-    ),
-    Sex = dplyr::case_when(
-      is.na(Sex_Assigned_at_Birth) & !is.na(Patient_Gender) ~ Patient_Gender,
-      TRUE ~ Sex_Assigned_at_Birth
-    ),
-    Sex = ifelse(is.na(Sex), "Not Known/Not Recorded", Sex),
-    .after = Sex_Assigned_at_Birth
-  ) |>
-  dplyr::mutate(
     TBI = grepl(
       pattern = tbi_codes_pattern,
       x = ICD_10_Diagnosis_Codes_List,

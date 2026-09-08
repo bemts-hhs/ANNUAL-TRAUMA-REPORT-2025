@@ -947,30 +947,70 @@ tbi_caption <- paste0(
 )
 
 ### tbi injury event plot ----
-tbi_injury_event_plot <- 
+tbi_injury_event_plot <- tbi_related_injuries |>
+  ggplot2::ggplot() +
+  ggplot2::geom_col(
+    ggplot2::aes(x = Year, y = n),
+    position = "dodge",
+    width = 0.75,
+    color = "transparent",
+    fill = "coral"
+  ) +
+  ggplot2::geom_text(
+    ggplot2::aes(
+      x = Year,
+      y = n * 0.05,
+      label = prettyNum(n, big.mark = ",")
+    ),
+    family = "Work Sans",
+    color = "white",
+    fontface = "bold",
+    size = 6
+  ) +
+  ggplot2::guides(color = "none", fill = "none") +
+  ggplot2::labs(
+    title = "Iowa TBI Injury Event Counts by Year",
+    subtitle = "Source: Iowa Trauma Registry || Years: 2021-2025",
+    x = "",
+    y = ""
+  ) +
+  ggthemes::theme_tufte(base_size = 14, base_family = "Work Sans") +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(size = 18),
+    plot.subtitle = ggplot2::element_text(size = 16),
+    axis.text.x = ggplot2::element_text(size = 14),
+    axis.text.y = ggplot2::element_blank(),
+    axis.ticks.y = ggplot2::element_blank()
+  )
 
-  
-  ## patients  ----
-  tbi_related_patients <- trauma_data_clean |>
-    injury_patient_count(
-      Year,
-      TBI,
-      descriptive_stats = TRUE,
-      group = TBI
-    ) |>
-    dplyr::filter(TBI) |>
-    dplyr::left_join(
-      trauma_data_clean |>
-        injury_patient_count(Year, TBI) |>
-        dplyr::mutate(
-          percent = n / sum(n),
-          percent_label = traumar::pretty_percent(percent, n_decimal = 2),
-          .by = Year
-        ) |>
-        dplyr::filter(TBI) |>
-        dplyr::select(-n),
-      by = dplyr::join_by(Year, TBI)
-    )
+#### save the tbi injury event plot to disk ----
+ggplot2::ggsave(
+  filename = "tbi_injury_event_plot.png",
+  plot = tbi_injury_event_plot,
+  path = plot_folder
+)
+
+## patients  ----
+tbi_related_patients <- trauma_data_clean |>
+  injury_patient_count(
+    Year,
+    TBI,
+    descriptive_stats = TRUE,
+    group = TBI
+  ) |>
+  dplyr::filter(TBI) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_patient_count(Year, TBI) |>
+      dplyr::mutate(
+        percent = n / sum(n),
+        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
+        .by = Year
+      ) |>
+      dplyr::filter(TBI) |>
+      dplyr::select(-n),
+    by = dplyr::join_by(Year, TBI)
+  )
 
 ###_____________________________________________________________________________
 # Motor vehicle, boating, and air incidents ----
@@ -1025,7 +1065,6 @@ motor_vehicle_related_injuries <-
       n_decimal = 2
     )
   )
-
 
 # table for motor vehicle injuries ----
 mvc_injury_transpose <-
@@ -1160,7 +1199,6 @@ reinjury_stat_tbl <-
 # save the reinjury table
 gt::gtsave(
   data = reinjury_stat_tbl,
-
   filename = "reinjury_stat_tbl.png",
   path = output_folder
 )
@@ -1191,7 +1229,7 @@ work_related_cases <-
     ),
     increase_label = traumar::pretty_percent(
       (cases - dplyr::lag(cases)) / dplyr::lag(cases),
-      digits = 2
+      n_decimal = 2
     )
   )
 
@@ -1219,7 +1257,7 @@ work_related_injuries <-
     ),
     increase_label = traumar::pretty_percent(
       (injuries - dplyr::lag(injuries)) / dplyr::lag(injuries),
-      digits = 2
+      n_decimal = 2
     )
   )
 
@@ -1248,7 +1286,7 @@ farm_related_cases <-
     ),
     increase_label = traumar::pretty_percent(
       (cases - dplyr::lag(cases)) / dplyr::lag(cases),
-      digits = 2
+      n_decimal = 2
     )
   )
 
@@ -1273,7 +1311,7 @@ farm_related_injuries <-
     ),
     increase_label = traumar::pretty_percent(
       (Injury_Events - dplyr::lag(Injury_Events)) / dplyr::lag(Injury_Events),
-      digits = 2
+      n_decimal = 2
     )
   )
 
