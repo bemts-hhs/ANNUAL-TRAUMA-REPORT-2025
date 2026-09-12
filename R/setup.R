@@ -275,57 +275,199 @@ tab_style_hhs <- function(
 }
 
 ###_____________________________________________________________________________
-# Function to calculate age-adjusted EMS run rates by county and BH district
-# This function computes directly standardized (age-adjusted) rates using
-# pre-aggregated data that includes event counts, local population estimates,
-# and standard population weights.
-#
+# calc_age_adjusted_rate()
+# Calculate crude and directly standardized EMS overdose rates with 95% CIs
+
+# This function computes:
+# - Age‐specific crude rates
+# - Directly standardized (age‐adjusted) rates
+# - Crude rate 95% confidence intervals using chi‐square limits
+# - Age‐adjusted rate 95% confidence intervals using the Fay–Feuer gamma method
+
 # Assumptions:
-#   • The input data has already been grouped (e.g., by County and Age Group).
-#   • {{ count }}, {{ local_population }}, and {{ standard_population_weight }}
-#     are scalar fields within these grouped rows.
-#   • The user provides any necessary grouping variables via ... to summarize
-#     results at the desired geographic or demographic resolution.
-#
-# This function returns both crude and age-adjusted rates per specified
-# multiplier (default is per 100,000 population).
-#
-# Inputs:
-#   • data — a grouped or ungrouped data.frame or tibble with input variables
-#   • count — unquoted column name representing the event count
-#   • local_population — unquoted column name for the local population (e.g., county-age)
-#   • standard_population_weight — unquoted column name for the standard weight (proportional)
-#   • ... — grouping variables to aggregate final rates (e.g., County, District)
-#   • rate — numeric value for scaling rates (default: 100,000)
-#
+# - The input data must contain pre‐aggregated age‐stratum rows
+# (for example, County × Year × Age Group).
+# - {{ count }}, {{ local_population }}, {{ standard_pops }}, and
+# {{ standard_population_weight }} must be scalar fields per row.
+# - StandardPopulations and weight must correspond to your binned US Standard Million.
+# - {{ .by }} identifies the grouping level for final rate summaries
+# (for example: "INCIDENT_YEAR", "CTYNAME").
+
+# Methodology:
+# - Crude rates are calculated as:
+# (sum(count) / sum(local_population)) × rate
+# - Crude CIs use chi‐square limits:
+# Lower = (0.5 × chisq(α/2, df = 2×Count)) / Population × rate
+# Upper = (0.5 × chisq(1−α/2, df = 2×Count+1)) / Population × rate
+
+# - Age‐adjusted rates follow direct standardization:
+# AAR = Σ_i (count_i / pop_i) × standard_population_weight_i
+
+# - Fay–Feuer variance components use:
+# w_i = stdmil_i / (pop_i × Σ_j stdmil_j)
+# v  = Σ_i (w_i^2 × count_i)
+
+# - Lower and upper age‐adjusted limits use the Fay–Feuer gamma method:
+# Lower = (v / (2 × R)) × chisq(α/2, df = 2 × (R^2 / v)) × rate
+# Upper = ((v + w_max^2) / (2 × (R + w_max))) ×
+# chisq(1−α/2, df = 2 × ((R + w_max)^2 / (v + w_max^2))) × rate
+# where R = Age_Adjusted_Rate / rate
+
 # Output:
-#   • A tibble with Count, Crude_Rate, and Age_Adjusted_Rate per grouping
+# - A tibble containing Count, Population, Crude_Rate, Crude_Rate CIs,
+# Age_Adjusted_Rate, and Fay–Feuer lower and upper limits for each grouping.
+
+# Notes:
+# - No variable names are altered.
+# - The function stays faithful to the formulas you provided.
+
+# References:
+# - https://eportal.isdh.in.gov/CancerRegistry/help/formulas.htm
+# - https://seer.cancer.gov/seerstat/tutorials/aarates/definition.html
 ###_____________________________________________________________________________
 
 calc_age_adjusted_rate <- function(
-  data, # input tibble or data.frame with grouped or stratified rows
-  count, # unquoted column name for observed event count (e.g., EMS runs)
-  local_population, # unquoted column name for stratum-specific local population
-  standard_population_weight, # unquoted column name for proportional weight from standard population
-  .by = NULL, # grouping variables for aggregating final rates (e.g., 'County', 'District')
-  rate = 100000 # rate multiplier (e.g., per 1000, 10000, or 100000)
+  data, # tibble or data.frame of age-stratified rows
+  count, # bare column name: observed count in each age stratum
+  local_population, # bare column name: population in each age stratum
+  standard_pops, # bare column name: standard population for each age stratum
+  standard_population_weight, # bare column name: normalized standard weight for each stratum
+  .by = NULL, # character vector of grouping variables (e.g., "INCIDENT_YEAR", "CTYNAME")
+  rate = 100000, # multiplier: typically per 100,000 population
+  conf_level = 0.95 # confidence level for CIs
 ) {
-  # Step 1: Calculate age-specific crude rate and weighted contribution
+  # ---------------------------------------------------------------------------
+  # Extract distinct standard population and weight values.
+  # This ensures the standard population total is computed once, not per-row.
+  # standard_pops_wts$pops    = stdmil_i   (SEER standard population counts)
+  # standard_pops_wts$wts     = w_m        (normalized SEER weights for rate calculation)
+  # ---------------------------------------------------------------------------
+  std_pops_wts <- tibble::tibble(
+    pops = data |> dplyr::select({{ standard_pops }}) |> dplyr::pull(),
+    wts = data |>
+      dplyr::select({{ standard_population_weight }}) |>
+      dplyr::pull()
+  ) |>
+    dplyr::distinct()
+
+  # Total standard population across all age groups: Σ_j stdmil_j.
+  std_pops_total <- sum(std_pops_wts$pops)
+
+  # ---------------------------------------------------------------------------
+  # Compute lower and upper α for confidence intervals.
+  # alpha_lower = α/2 ; alpha_upper = 1 − α/2.
+  # ---------------------------------------------------------------------------
+  alpha <- 1 - conf_level
+  alpha_lower <- alpha / 2
+  alpha_upper <- 1 - alpha_lower
+
+  # ---------------------------------------------------------------------------
+  # Step 1: Create age-stratum-level metrics.
+  #
+  # crude_rate_i = (d_i / p_i) × rate
+  # weighted_rate_i = crude_rate_i × w_m_i  (direct standardization)
+  #
+  # w_i = stdmil_i / (pop_i × Σ_j stdmil_j)
+  # This is the Fay–Feuer variance weight, *not* the normalized weight.
+  # ---------------------------------------------------------------------------
   rate_data <- data |>
     dplyr::mutate(
-      crude_rate = ({{ count }} / {{ local_population }}) * rate, # rate within each age group
-      weighted_rate = crude_rate * {{ standard_population_weight }} # contribution to adjusted rate
+      crude_rate = ({{ count }} / {{ local_population }}) * rate,
+
+      weighted_rate = crude_rate * {{ standard_population_weight }},
+
+      w = {{ standard_pops }} /
+        ({{ local_population }} * std_pops_total)
     )
 
-  # Step 2: Aggregate to final grouping level
+  # ---------------------------------------------------------------------------
+  # Step 2: Aggregate age-stratum metrics to the requested grouping level.
+  #
+  # Count: Σ_i d_i
+  # Population: Σ_i p_i
+  #
+  # Crude_Rate = (Count / Population) × rate
+  #
+  # Crude CI: Chi-square limits for Poisson mean scaled to crude rate.
+  #
+  # Age_Adjusted_Rate = Σ_i weighted_rate_i
+  #
+  # AAR = unscaled adjusted rate = Age_Adjusted_Rate / rate
+  #
+  # Variance for direct standardized rate:
+  # D = Σ_i (w_i² d_i)
+  # Note: v is the D term in your notation.
+  #
+  # Lower CI (Fay–Feuer):
+  #   L = (v / (2R)) × χ²(α/2, df = 2(R²/v)) × rate
+  #
+  # Upper CI (Fay–Feuer):
+  #   U = [(v + w_max²) / (2(R + w_max))] ×
+  #        χ²(1−α/2, df = 2((R + w_max)² / (v + w_max²))) × rate
+  #
+  # ---------------------------------------------------------------------------
   rate_summary <- rate_data |>
     dplyr::summarize(
-      Count = sum({{ count }}, na.rm = TRUE), # total count of events
-      Crude_Rate = sum({{ count }}, na.rm = TRUE) /
-        sum({{ local_population }}, na.rm = TRUE) *
-        rate, # overall crude rate
-      Age_Adjusted_Rate = sum(weighted_rate, na.rm = TRUE), # final adjusted rate
-      .by = tidyselect::all_of({{ .by }}) # group by user-supplied variables (e.g., County)
+      Count = sum({{ count }}, na.rm = TRUE),
+      Population = sum({{ local_population }}, na.rm = TRUE),
+
+      # Crude rate and SE
+      Crude_Rate = Count / Population * rate,
+      Crude_Rate_SE = (sqrt(Count) / Population) * rate,
+
+      # Chi-square crude rate lower and upper limits
+      Crude_Rate_Lower = (0.5 * qchisq(p = alpha_lower, df = 2 * Count)) /
+        Population *
+        rate,
+
+      Crude_Rate_Upper = (0.5 * qchisq(p = alpha_upper, df = (2 * Count) + 1)) /
+        Population *
+        rate,
+
+      # Directly standardized rate
+      Age_Adjusted_Rate = sum(weighted_rate, na.rm = TRUE),
+
+      # Unscaled adjusted rate (R in formulas)
+      AAR = Age_Adjusted_Rate / rate,
+
+      # Standard error for age-adjusted rate (gamma-based variance component)
+      Age_Adjusted_Rate_SE = sqrt(
+        sum(
+          ({{ standard_population_weight }}^2) *
+            ({{ count }} / ({{ local_population }}^2)),
+          na.rm = TRUE
+        ) *
+          rate^2
+      ),
+
+      # Fay–Feuer components: w_max and v = Σ_i w_i² d_i
+      max_w = max(w, na.rm = TRUE),
+      v = sum((w^2) * {{ count }}, na.rm = TRUE),
+
+      # Fay–Feuer Lower limit
+      Age_Adjusted_Rate_Lower = ((v / (2 * AAR)) *
+        qchisq(
+          p = alpha_lower,
+          df = (2 * (AAR^2)) / v # df = 2(R² / v)
+        )) *
+        rate,
+
+      # Fay–Feuer Upper limit
+      Age_Adjusted_Rate_Upper = ((v + (max_w^2)) /
+        (2 * (AAR + max_w))) *
+        qchisq(
+          p = alpha_upper,
+          df = (2 * ((AAR + max_w)^2)) /
+            (v + (max_w^2))
+        ) *
+        rate,
+
+      .by = tidyselect::all_of({{ .by }})
+    ) |>
+    dplyr::select(
+      -AAR, # remove intermediate unscaled rate
+      -max_w, # remove Fay–Feuer w_max intermediate
+      -v # remove variance component intermediate
     )
 
   return(rate_summary)
