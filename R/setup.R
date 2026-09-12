@@ -289,7 +289,8 @@ tab_style_hhs <- function(
 # (for example, County × Year × Age Group).
 # - {{ count }}, {{ local_population }}, {{ standard_pops }}, and
 # {{ standard_population_weight }} must be scalar fields per row.
-# - StandardPopulations and weight must correspond to your binned US Standard Million.
+# - StandardPopulations and weight must correspond to your binned US Standard
+#   Million.
 # - {{ .by }} identifies the grouping level for final rate summaries
 # (for example: "INCIDENT_YEAR", "CTYNAME").
 
@@ -336,12 +337,12 @@ calc_age_adjusted_rate <- function(
   rate = 100000, # multiplier: typically per 100,000 population
   conf_level = 0.95 # confidence level for CIs
 ) {
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   # Extract distinct standard population and weight values.
   # This ensures the standard population total is computed once, not per-row.
-  # standard_pops_wts$pops    = stdmil_i   (SEER standard population counts)
-  # standard_pops_wts$wts     = w_m        (normalized SEER weights for rate calculation)
-  # ---------------------------------------------------------------------------
+  # standard_pops_wts$pops = stdmil_i (SEER standard population counts)
+  # standard_pops_wts$wts = w_m (normalized SEER weights for rate calculation)
+  # ____________________________________________________________________________
   std_pops_wts <- tibble::tibble(
     pops = data |> dplyr::select({{ standard_pops }}) |> dplyr::pull(),
     wts = data |>
@@ -353,15 +354,15 @@ calc_age_adjusted_rate <- function(
   # Total standard population across all age groups: Σ_j stdmil_j.
   std_pops_total <- sum(std_pops_wts$pops)
 
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   # Compute lower and upper α for confidence intervals.
   # alpha_lower = α/2 ; alpha_upper = 1 − α/2.
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   alpha <- 1 - conf_level
   alpha_lower <- alpha / 2
   alpha_upper <- 1 - alpha_lower
 
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   # Step 1: Create age-stratum-level metrics.
   #
   # crude_rate_i = (d_i / p_i) × rate
@@ -369,7 +370,7 @@ calc_age_adjusted_rate <- function(
   #
   # w_i = stdmil_i / (pop_i × Σ_j stdmil_j)
   # This is the Fay–Feuer variance weight, *not* the normalized weight.
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   rate_data <- data |>
     dplyr::mutate(
       crude_rate = ({{ count }} / {{ local_population }}) * rate,
@@ -380,7 +381,7 @@ calc_age_adjusted_rate <- function(
         ({{ local_population }} * std_pops_total)
     )
 
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   # Step 2: Aggregate age-stratum metrics to the requested grouping level.
   #
   # Count: Σ_i d_i
@@ -405,7 +406,7 @@ calc_age_adjusted_rate <- function(
   #   U = [(v + w_max²) / (2(R + w_max))] ×
   #        χ²(1−α/2, df = 2((R + w_max)² / (v + w_max²))) × rate
   #
-  # ---------------------------------------------------------------------------
+  # ____________________________________________________________________________
   rate_summary <- rate_data |>
     dplyr::summarize(
       Count = sum({{ count }}, na.rm = TRUE),
