@@ -11,38 +11,25 @@
 # Sex ----
 ###
 
-# get overall counts of gender ----
-gender_counts <- trauma_data_clean |>
+# get overall counts of sex ----
+sex_counts <- trauma_data_clean |>
   injury_patient_count(
     Year,
-    Patient_Sex,
+    Sex = Patient_Sex,
     descriptive_stats = TRUE,
-    group = Patient_Sex
+    group = Sex
   ) |>
-  dplyr::mutate(
-    Patient_Sex = ifelse(
-      grepl(pattern = "not", x = Patient_Sex, ignore.case = TRUE),
-      "Missing",
-      Patient_Sex
-    )
-  ) |>
-  dplyr::arrange(Patient_Sex, Year)
-
-# get proportions of patients by gender over the years ----
-gender_proportions <- trauma_data_clean |>
-  injury_patient_count(Year, Sex = Patient_Gender) |>
   dplyr::mutate(
     Sex = ifelse(
       grepl(pattern = "not", x = Sex, ignore.case = TRUE),
       "Missing",
       Sex
-    ),
-    prop = n / sum(n),
-    .by = Year
-  )
+    )
+  ) |>
+  dplyr::arrange(Sex, Year)
 
-# create gender plot to show patient counts over the years ----
-gender_proportions_plot <- gender_proportions |>
+# create sex plot to show patient proportions over the years ----
+sex_counts_plot <- sex_counts |>
   dplyr::filter(Sex %in% c("Male", "Female")) |>
   ggplot2::ggplot(ggplot2::aes(x = Year, y = n, fill = Sex)) +
   ggplot2::geom_col(
@@ -50,7 +37,10 @@ gender_proportions_plot <- gender_proportions |>
     position = ggplot2::position_dodge(width = 0.7)
   ) +
   ggplot2::geom_text(
-    ggplot2::aes(y = 2250, label = traumar::pretty_number(x = n)),
+    ggplot2::aes(
+      y = 2250,
+      label = traumar::pretty_number(x = n)
+    ),
     color = "white",
     angle = 90,
     position = ggplot2::position_dodge(width = 0.7),
@@ -68,22 +58,74 @@ gender_proportions_plot <- gender_proportions |>
     axis.text.y = ggplot2::element_blank()
   )
 
-# save the gender plot ----
+# save the sex plot ----
 ggplot2::ggsave(
-  filename = "gender_proportions_plot.png",
-  plot = gender_proportions_plot,
+  filename = "sex_counts_plot.png",
+  plot = sex_counts_plot,
   path = plot_folder,
   height = 6.67,
   width = 6.67 * 1.78
 )
 
-# Get a table of counts by patient gender and survival rates ----
-gender_counts_survival <- trauma_data_clean |>
+# get proportions of patients by sex over the years ----
+sex_proportions <- trauma_data_clean |>
+  injury_patient_count(Year, Sex = Patient_Sex) |>
+  dplyr::mutate(
+    Sex = ifelse(
+      grepl(pattern = "not", x = Sex, ignore.case = TRUE),
+      "Missing",
+      Sex
+    ),
+    prop = n / sum(n),
+    .by = Year
+  )
+
+# create sex plot to show patient proportions over the years ----
+sex_proportions_plot <- sex_proportions |>
+  dplyr::filter(Sex %in% c("Male", "Female")) |>
+  ggplot2::ggplot(ggplot2::aes(x = Year, y = prop, fill = Sex)) +
+  ggplot2::geom_col(
+    width = 0.5,
+    position = ggplot2::position_dodge(width = 0.7)
+  ) +
+  ggplot2::geom_text(
+    ggplot2::aes(
+      y = 0.1,
+      label = traumar::pretty_percent(variable = prop, n_decimal = 2)
+    ),
+    color = "white",
+    angle = 90,
+    position = ggplot2::position_dodge(width = 0.7),
+    size = 12,
+    fontface = "bold",
+    family = "Work Sans"
+  ) +
+  ggthemes::scale_fill_tableau() +
+  ggplot2::scale_y_continuous(n.breaks = 5, labels = function(x) {
+    traumar::pretty_percent(variable = x, n_decimal = 2)
+  }) +
+  ggplot2::labs(x = "", y = "") +
+  traumar::theme_cleaner(
+    base_size = 30,
+    axis.text.y = ggplot2::element_blank()
+  )
+
+# save the sex plot ----
+ggplot2::ggsave(
+  filename = "sex_proportions_plot.png",
+  plot = sex_proportions_plot,
+  path = plot_folder,
+  height = 6.67,
+  width = 6.67 * 1.78
+)
+
+# Get a table of counts by patient sex and survival rates ----
+sex_counts_survival <- trauma_data_clean |>
   dplyr::mutate(
     Mortality = max(Death, na.rm = TRUE),
     .by = c(Year, Unique_Patient_ID)
   ) |>
-  injury_patient_count(Year, Sex = Patient_Gender, Mortality) |>
+  injury_patient_count(Year, Sex = Patient_Sex, Mortality) |>
   dplyr::mutate(
     Mortality = dplyr::if_else(Mortality == 1, "Died", "Lived"),
     Sex = ifelse(
@@ -113,7 +155,7 @@ survival_stats <- trauma_data_2025 |>
     unique_incident_id = Unique_Patient_ID,
     mortality_indicator = Mortality,
     risk_group = Risk_Definition,
-    groups = "Patient_Gender"
+    groups = "Patient_Sex"
   ) |>
   purrr::pluck(1)
 

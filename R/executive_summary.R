@@ -302,26 +302,26 @@ transfer_delays_2025 <- trauma_data_clean |>
 
 
 ###_____________________________________________________________________________
-# Gender ----
+# Sex ----
 ###_____________________________________________________________________________
 
-## get gender data ----
-gender_group <- trauma_data_clean |>
+## get sex data ----
+sex_group <- trauma_data_clean |>
   dplyr::filter(Year %in% 2024:2025) |>
   dplyr::mutate(
-    Patient_Gender = dplyr::if_else(
-      grepl(pattern = "not", x = Patient_Gender, ignore.case = TRUE),
+    Patient_Sex = dplyr::if_else(
+      grepl(pattern = "not", x = Patient_Sex, ignore.case = TRUE),
       "Missing",
-      Patient_Gender
+      Patient_Sex
     )
   ) |>
-  tidyr::replace_na(list(Patient_Gender = "Missing")) |>
-  injury_incident_count(Year, Patient_Gender) |>
+  tidyr::replace_na(list(Patient_Sex = "Missing")) |>
+  injury_incident_count(Year, Patient_Sex) |>
   dplyr::mutate(Proportion = (n / sum(n)) * 100, .by = Year)
 
 ## create a table visualization using gt() ----
-gender_group_tbl <-
-  gender_group |>
+sex_group_tbl <-
+  sex_group |>
   dplyr::mutate(
     n = traumar::small_count_label(
       var = n,
@@ -329,11 +329,11 @@ gender_group_tbl <-
       replacement = NA_integer_
     )
   ) |>
-  gt::gt(groupname_col = "Year", rowname_col = "Patient_Gender") |>
+  gt::gt(groupname_col = "Year", rowname_col = "Patient_Sex") |>
   gt::sub_missing(columns = n) |>
   gt::fmt_number(columns = n, drop_trailing_zeros = TRUE) |>
   gt::tab_header(
-    title = "Summary: Injury Events by Gender",
+    title = "Summary: Injury Events by Patient Sex",
     subtitle = "Data: Iowa Trauma Registry 2024-2025"
   ) |>
   gt::cols_label(n = "# Injury Events") |>
@@ -352,27 +352,27 @@ gender_group_tbl <-
   ) |>
   gt::tab_footnote(
     footnote = small_count_message,
-    locations = gt::cells_body(columns = n, rows = 6)
+    locations = gt::cells_body(columns = n, rows = 4)
   ) |>
   tab_style_hhs(border_cols = n:Proportion, message_text = NULL)
 
 ### convert gt object to xlsx ----
-gender_group_tbl_xlsx <- openxlsx2::wb_workbook() |>
+sex_group_tbl_xlsx <- openxlsx2::wb_workbook() |>
   openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
   gtxlsx::wb_add_gt(
-    x = gender_group_tbl
+    x = sex_group_tbl
   )
 
 ### save the xlsx object to disk ----
 openxlsx2::wb_save(
-  wb = gender_group_tbl_xlsx,
-  file = paste0(output_folder, "/gender_group_tbl.xlsx")
+  wb = sex_group_tbl_xlsx,
+  file = paste0(output_folder, "/sex_group_tbl.xlsx")
 )
 
 ### save the table viz ----
 gt::gtsave(
-  data = gender_group_tbl,
-  filename = "gender_group_tbl.png",
+  data = sex_group_tbl,
+  filename = "sex_group_tbl.png",
   path = output_folder
 )
 
