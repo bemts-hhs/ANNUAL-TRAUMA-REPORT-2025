@@ -17,7 +17,7 @@ mechanism_of_injury_counts <- trauma_data_clean |>
 mechanism_of_injury_counts_select <- mechanism_of_injury_counts |>
   dplyr::filter(Year == 2025)
 
-# plot the age distribution within the IPOP database ----
+# plot the distribution of mechanism ----
 mechanism_of_injury_cols <- mechanism_of_injury_counts_select |>
   ggplot2::ggplot(ggplot2::aes(
     x = reorder(x = CAUSE_OF_INJURY_AR_1, n),
@@ -62,6 +62,51 @@ mechanism_of_injury_cols <- mechanism_of_injury_counts_select |>
 ggplot2::ggsave(
   filename = "mechanism_of_injury_cols.png",
   plot = mechanism_of_injury_cols,
+  path = plot_folder,
+  height = 6.67,
+  width = 6.67 * 1.78
+)
+
+# get monthyly counts and proportions of injury events by mechanism of injury ----
+mechanism_of_injury_counts_monthly <- trauma_data_clean |>
+  dplyr::filter(!is.na(CAUSE_OF_INJURY_AR_1)) |>
+  injury_incident_count(Admission_Month, CAUSE_OF_INJURY_AR_1) |>
+  dplyr::mutate(percent = n / sum(n), .by = Admission_Month)
+
+# plot the distribution of mechanism ----
+mechanism_of_injury_lines <- mechanism_of_injury_counts_monthly |>
+  ggplot2::ggplot(ggplot2::aes(
+    x = Admission_Month,
+    y = n,
+    color = CAUSE_OF_INJURY_AR_1
+  )) +
+  ggplot2::geom_line(
+    linewidth = 1.25,
+    lineend = "round",
+    linejoin = "round"
+  ) +
+  ggplot2::labs(x = "Year-Month", y = "", color = "Mechanism") +
+  ggplot2::scale_x_date(
+    date_breaks = "3 months",
+    date_labels = "%Y-%m",
+    limits = c(as.Date("2021-01-01"), as.Date("2025-12-01"))
+  ) +
+  # ggplot2::facet_grid(
+  #   rows = ggplot2::vars(CAUSE_OF_INJURY_AR_1),
+  #   scales = "free_y"
+  # ) +
+  ggthemes::theme_tufte(base_size = 18, base_family = "Work Sans") +
+  paletteer::scale_color_paletteer_d(palette = "colorblindr::OkabeIto_black") +
+  ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
+      angle = 90
+    )
+  )
+
+# save the treemap
+ggplot2::ggsave(
+  filename = "mechanism_of_injury_lines.png",
+  plot = mechanism_of_injury_lines,
   path = plot_folder,
   height = 6.67,
   width = 6.67 * 1.78

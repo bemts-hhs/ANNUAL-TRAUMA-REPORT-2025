@@ -93,6 +93,13 @@ trauma_data_clean <- trauma_data |>
     .after = Age_Range
   ) |>
   dplyr::mutate(
+    Admission_Month = lubridate::floor_date(
+      ED_Acute_Care_Admission_Date,
+      unit = "month"
+    ),
+    .after = Year
+  ) |>
+  dplyr::mutate(
     Injury_County = stringr::str_to_title(Injury_County),
     Injury_County = dplyr::if_else(
       grepl(pattern = "o'b", x = Injury_County, ignore.case = TRUE),

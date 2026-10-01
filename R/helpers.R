@@ -60,6 +60,36 @@ tbi_codes_pattern <- paste0(
   ")"
 )
 
+###___________________________________________________________________________
+# E-Scooter codes ----
+###___________________________________________________________________________
+
+## all e-scooter injuries
+all_escooter_pattern <- paste0(
+  "(?:v00.(?:03|84)|v0[1-6].[019]3)",
+  collapse = "|"
+)
+
+## e-scooter with MVC ----
+escooter_mvc_pattern <- paste0(
+  "(?:v0[345].[019]3)",
+  collapse = "|"
+)
+
+## e-scooter strike or fall ----
+# strike a pedestrian, or the ground, respectively
+escooter_strike_fall_pattern <- paste0(
+  "(?:v00.03|v00.84)",
+  collapse = "|"
+)
+
+## e-scooter non-motor vehicle collision ----
+# e.g. bicycle
+escooter_non_mvc_pattern <- paste0(
+  "(?:v0[16].[019]3)",
+  collapse = "|"
+)
+
 # classify counties in the data ----
 location_data <- readxl::read_excel(path = iowa_counties_districts_path)
 
