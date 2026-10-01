@@ -259,7 +259,7 @@ patient_race_gt <- patient_race_counts_select |>
 gt::gtsave(
   data = patient_race_gt,
   filename = "patient_race_gt.png",
-  path = plot_folder
+  path = output_folder
 )
 
 # patient counts by age groups ----
@@ -326,5 +326,5 @@ age_range_gt <- age_range_counts_select |>
 gt::gtsave(
   data = age_range_gt,
   filename = "age_range_gt.png",
-  path = plot_folder
+  path = output_folder
 )

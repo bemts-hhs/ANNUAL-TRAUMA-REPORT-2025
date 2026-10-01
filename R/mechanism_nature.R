@@ -15,7 +15,7 @@ mechanism_of_injury_counts <- trauma_data_clean |>
 
 # get a subset of the counts for the plot ----
 mechanism_of_injury_counts_select <- mechanism_of_injury_counts |>
-  dplyr::filter(Year == 2024)
+  dplyr::filter(Year == 2025)
 
 # plot the age distribution within the IPOP database ----
 mechanism_of_injury_cols <- mechanism_of_injury_counts_select |>
