@@ -100,6 +100,24 @@ ebike_mvc_pattern <- paste0(
   "(?:v2[2345]\\.[459]1|v29\\.[456][09]1|v29\\.8[18]1)"
 )
 
+###___________________________________________________________________________
+# All e-scooter and e-bike ----
+###___________________________________________________________________________
+
+## all e-scooter and e-bike ----
+escooter_ebike_pattern <- paste0(
+  all_escooter_pattern,
+  "|",
+  all_ebike_pattern
+)
+
+## all e-scooter and e-bike MVC ----
+escooter_ebike_mvc_pattern <- paste0(
+  escooter_mvc_pattern,
+  "|",
+  ebike_mvc_pattern
+)
+
 # classify counties in the data ----
 location_data <- readxl::read_excel(path = iowa_counties_districts_path)
 

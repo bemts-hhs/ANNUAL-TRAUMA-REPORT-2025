@@ -97,6 +97,10 @@ trauma_data_clean <- trauma_data |>
       ED_Acute_Care_Admission_Date,
       unit = "month"
     ),
+    Admission_Quarter = lubridate::floor_date(
+      ED_Acute_Care_Admission_Date,
+      unit = "quarter"
+    ),
     .after = Year
   ) |>
   dplyr::mutate(
@@ -154,6 +158,46 @@ trauma_data_clean <- trauma_data |>
         x = ICD_10_Injury_Codes_List,
         ignore.case = TRUE
       ),
+    All_EScooter = grepl(
+      pattern = all_escooter_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    EScooter_MVC = grepl(
+      pattern = escooter_mvc_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    EScooter_Non_MVC = grepl(
+      pattern = escooter_non_mvc_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    EScooter_Strike_Fall = grepl(
+      pattern = escooter_strike_fall_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    All_EBike = grepl(
+      pattern = all_ebike_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    EBike_MVC = grepl(
+      pattern = ebike_mvc_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    All_EScooter_EBike = grepl(
+      pattern = escooter_ebike_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
+    EScooter_EBike_MVC = grepl(
+      pattern = escooter_ebike_mvc_pattern,
+      x = ICD_10_Injury_Codes_List,
+      ignore.case = TRUE
+    ),
     .after = ICD_10_Injury_Codes_List
   ) |>
   dplyr::mutate(

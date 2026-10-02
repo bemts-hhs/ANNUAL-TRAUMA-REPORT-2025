@@ -67,41 +67,50 @@ ggplot2::ggsave(
   width = 6.67 * 1.78
 )
 
-# get monthyly counts and proportions of injury events by mechanism of injury ----
-mechanism_of_injury_counts_monthly <- trauma_data_clean |>
+# get quarterly counts and proportions of injury events by mechanism of injury ----
+mechanism_of_injury_counts_quarterly <- trauma_data_clean |>
   dplyr::filter(!is.na(CAUSE_OF_INJURY_AR_1)) |>
-  injury_incident_count(Admission_Month, CAUSE_OF_INJURY_AR_1) |>
-  dplyr::mutate(percent = n / sum(n), .by = Admission_Month)
+  injury_incident_count(Admission_Quarter, CAUSE_OF_INJURY_AR_1) |>
+  dplyr::mutate(percent = n / sum(n), .by = Admission_Quarter) |>
+  dplyr::group_by(Admission_Quarter) |>
+  dplyr::arrange(desc(n), .by_group = TRUE) |>
+  dplyr::ungroup()
 
 # plot the distribution of mechanism ----
-mechanism_of_injury_lines <- mechanism_of_injury_counts_monthly |>
+mechanism_of_injury_lines <- mechanism_of_injury_counts_quarterly |>
   ggplot2::ggplot(ggplot2::aes(
-    x = Admission_Month,
+    x = Admission_Quarter,
     y = n,
-    color = CAUSE_OF_INJURY_AR_1
+    color = reorder(CAUSE_OF_INJURY_AR_1, -n)
   )) +
   ggplot2::geom_line(
+    ggplot2::aes(alpha = 0.9),
     linewidth = 1.25,
     lineend = "round",
     linejoin = "round"
   ) +
-  ggplot2::labs(x = "Year-Month", y = "", color = "Mechanism") +
+  ggplot2::labs(x = "", y = "", color = "Mechanism") +
   ggplot2::scale_x_date(
-    date_breaks = "3 months",
+    date_breaks = "6 months",
     date_labels = "%Y-%m",
     limits = c(as.Date("2021-01-01"), as.Date("2025-12-01"))
   ) +
-  # ggplot2::facet_grid(
-  #   rows = ggplot2::vars(CAUSE_OF_INJURY_AR_1),
-  #   scales = "free_y"
-  # ) +
   ggthemes::theme_tufte(base_size = 18, base_family = "Work Sans") +
   paletteer::scale_color_paletteer_d(palette = "colorblindr::OkabeIto_black") +
   ggplot2::theme(
+    axis.text = ggplot2::element_text(size = 20, family = "Work Sans"),
+    legend.text = ggplot2::element_text(family = "Work Sans", size = 20),
+    legend.title = ggplot2::element_text(
+      family = "Work Sans",
+      face = "bold",
+      size = 22
+    ),
     axis.text.x = ggplot2::element_text(
       angle = 90
-    )
-  )
+    ),
+    legend.position = "right"
+  ) +
+  ggplot2::guides(alpha = "none")
 
 # save the treemap
 ggplot2::ggsave(
