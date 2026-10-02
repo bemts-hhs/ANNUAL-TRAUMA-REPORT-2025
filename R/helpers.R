@@ -66,28 +66,38 @@ tbi_codes_pattern <- paste0(
 
 ## all e-scooter injuries
 all_escooter_pattern <- paste0(
-  "(?:v00.(?:03|84)|v0[1-6].[019]3)",
-  collapse = "|"
+  "(?:v00\\.(?:03|84)|v0[1-6]\\.[019]3)"
 )
 
 ## e-scooter with MVC ----
 escooter_mvc_pattern <- paste0(
-  "(?:v0[345].[019]3)",
-  collapse = "|"
+  "(?:v0[345]\\.[019]3)"
 )
 
 ## e-scooter strike or fall ----
 # strike a pedestrian, or the ground, respectively
 escooter_strike_fall_pattern <- paste0(
-  "(?:v00.03|v00.84)",
-  collapse = "|"
+  "(?:v00\\.03|v00\\.84)"
 )
 
 ## e-scooter non-motor vehicle collision ----
 # e.g. bicycle
 escooter_non_mvc_pattern <- paste0(
-  "(?:v0[16].[019]3)",
-  collapse = "|"
+  "(?:v0[16]\\.[019]3)"
+)
+
+###___________________________________________________________________________
+# E-Bike codes ----
+###___________________________________________________________________________
+
+## all e-bike codes ----
+all_ebike_pattern <- paste0(
+  "(?:v2[0-8]\\.[0123459]1|v29\\.[012456][09]1|v29\\.8[18]1|v29\\.31|v29\\.91)"
+)
+
+## mvc traffic collision e-bike codes ----
+ebike_mvc_pattern <- paste0(
+  "(?:v2[2345]\\.[459]1|v29\\.[456][09]1|v29\\.8[18]1)"
 )
 
 # classify counties in the data ----
