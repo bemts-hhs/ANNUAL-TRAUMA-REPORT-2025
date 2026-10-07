@@ -592,7 +592,7 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
     # A unique event is defined as a unique combination of Incident_Date and Unique_Patient_ID
     # This removes duplicated encounters for the same incident
     temp <- df |>
-      dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE)
+      dplyr::distinct(Year, Incident_Date, Unique_Patient_ID, .keep_all = TRUE)
 
     if (!descriptive_stats) {
       # Return a simple count of injury events by grouping variable(s)
@@ -873,7 +873,7 @@ summarize_reinjury_stats <- function(df, grouping_vars = grouping_vars) {
     #   - Flag patients with more than one injury in a year (reinjury)
     #___________________________________________________________________________
     init <- df |>
-      dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE)
+      dplyr::distinct(Year, Incident_Date, Unique_Patient_ID, .keep_all = TRUE)
 
     patient_year <- init |>
       dplyr::count(!!!grouping_syms, Unique_Patient_ID) |>

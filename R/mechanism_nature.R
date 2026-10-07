@@ -121,9 +121,272 @@ ggplot2::ggsave(
   width = 6.67 * 1.78
 )
 
-# get statistics on special cases of injuries ----
+###___________________________________________________________________________
+# Nature of injury ----
+###___________________________________________________________________________
 
-# work related and ag ---
+## get injury counts by nature of injury category ----
+nature_of_injury_counts <- trauma_2025 |>
+  dplyr::mutate(
+    CAUSE_OF_INJURY_AR_1 = ifelse(
+      grepl(pattern = "fall", x = CAUSE_OF_INJURY_AR_1, ignore.case = TRUE),
+      "Falls",
+      CAUSE_OF_INJURY_AR_1
+    ),
+    dplyr::across(
+      c(NATURE_OF_INJURY_DESCRIPTOR_1, CAUSE_OF_INJURY_AR_1),
+      ~ ifelse(is.na(.), "Unspecified", .)
+    )
+  ) |>
+  injury_incident_count(CAUSE_OF_INJURY_AR_1, NATURE_OF_INJURY_DESCRIPTOR_1) |>
+  tidyr::pivot_wider(
+    id_cols = NATURE_OF_INJURY_DESCRIPTOR_1,
+    names_from = CAUSE_OF_INJURY_AR_1,
+    values_from = n
+  ) |>
+  dplyr::mutate(
+    dplyr::across(-NATURE_OF_INJURY_DESCRIPTOR_1, ~ ifelse(is.na(.), 0, .))
+  ) |>
+  dplyr::rowwise() |>
+  dplyr::mutate(
+    Total = sum(
+      dplyr::c_across(Falls:Unspecified),
+      na.rm = TRUE
+    )
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    Percent = scales::percent(Total / sum(Total), accuracy = 0.01)
+  ) |>
+  dplyr::arrange(desc(Total))
+
+## nature of injury gt table ----
+# use data in this table for the narrative
+nature_of_injury_gt <- nature_of_injury_counts |>
+  dplyr::filter(NATURE_OF_INJURY_DESCRIPTOR_1 != "Unspecified") |>
+  dplyr::select(-c(Unspecified, Poisoning)) |>
+  dplyr::slice_head(n = 5) |>
+  dplyr::mutate(
+    dplyr::across(Falls:`Struck by/against`, ~ ifelse(. < 6, NA, .))
+  ) |>
+  gt::gt() |>
+  gt::fmt_missing(columns = 2:6) |>
+  gt::cols_label(
+    NATURE_OF_INJURY_DESCRIPTOR_1 ~ "Nature of Injury"
+  ) |>
+  gt::fmt_number(columns = 2:7, drop_trailing_zeros = TRUE) |>
+  tab_style_hhs(
+    border_cols = 2:tidyselect::last_col(),
+  ) |>
+  gt::tab_footnote(
+    footnote = small_count_message,
+    locations = gt::cells_body(
+      columns = c(Falls, Firearm, `Struck by/against`),
+      rows = 5
+    )
+  )
+
+### save the nature of injury gt table ----
+gt::gtsave(
+  data = nature_of_injury_gt,
+  filename = "nature_of_injury_table.png",
+  path = output_folder
+)
+
+## create a nature of injury plot for the report ----
+nature_of_injury_bars <- trauma_2025 |>
+  injury_incident_count(NATURE_OF_INJURY_DESCRIPTOR_1) |>
+  dplyr::filter(!is.na(NATURE_OF_INJURY_DESCRIPTOR_1)) |>
+  dplyr::arrange(desc(n)) |>
+  dplyr::slice_head(n = 10) |>
+  dplyr::mutate(
+    NATURE_OF_INJURY_DESCRIPTOR_1 = stringr::str_wrap(
+      NATURE_OF_INJURY_DESCRIPTOR_1,
+      width = 12
+    )
+  ) |>
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = reorder(NATURE_OF_INJURY_DESCRIPTOR_1, n),
+      y = n,
+      label = traumar::pretty_number(x = n, digits = 2)
+    )
+  ) +
+  ggplot2::geom_col(
+    width = 0.75,
+    position = "dodge",
+    fill = "blue",
+    alpha = 0.75
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::guides(
+    fill = "none",
+    alpha = "none"
+  ) +
+  ggplot2::labs(
+    x = "",
+    y = ""
+  ) +
+  ggplot2::scale_y_continuous(labels = function(x) {
+    traumar::pretty_number(x = x, digits = 2)
+  }) +
+  ggthemes::theme_gdocs(base_size = 18, base_family = "Work Sans") +
+  ggplot2::theme(
+    panel.grid.major.y = ggplot2::element_blank()
+  )
+
+## save the nature of injury plot ----
+ggplot2::ggsave(
+  filename = "nature_of_injury_bars.png",
+  plot = nature_of_injury_bars,
+  path = plot_folder,
+  height = 7.5 * (16 / 9),
+  width = 7.5
+)
+
+###___________________________________________________________________________
+# Body region ----
+###___________________________________________________________________________
+
+## get counts of injury events by body region ----
+overall_body_region_counts <- trauma_2025 |>
+  dplyr::mutate(
+    dplyr::across(
+      c(CAUSE_OF_INJURY_AR_1, BODY_REGION_CATEGORY_LEVEL_1_1),
+      ~ ifelse(
+        is.na(.) | grepl(pattern = "unspec|unclass", x = ., ignore.case = TRUE),
+        "Unspecified",
+        .
+      )
+    ),
+    BODY_REGION_CATEGORY_LEVEL_1_1 = ifelse(
+      grepl(
+        pattern = "head",
+        x = BODY_REGION_CATEGORY_LEVEL_1_1,
+        ignore.case = TRUE
+      ),
+      "Head and Neck all",
+      BODY_REGION_CATEGORY_LEVEL_1_1
+    )
+  ) |>
+  dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  janitor::tabyl(BODY_REGION_CATEGORY_LEVEL_1_1) |>
+  dplyr::arrange(desc(n))
+
+### export injury event counts by body region ----
+readr::write_csv(
+  x = overall_body_region_counts,
+  file = paste0(output_folder, "/overall_body_region_counts.csv")
+)
+
+### make a gt table of the overall counts ----
+overall_body_region_counts_gt <- overall_body_region_counts |>
+  dplyr::rename_with(.cols = 2:3, ~ stringr::str_to_title(.)) |>
+  dplyr::mutate(Percent = Percent * 100) |>
+  gt::gt() |>
+  gt::fmt_number(columns = "N", drop_trailing_zeros = TRUE) |>
+  gt::cols_label(
+    BODY_REGION_CATEGORY_LEVEL_1_1 ~ "Body Region"
+  ) |>
+  gtExtras::gt_plt_bar_pct(
+    column = Percent,
+    fill = "blue",
+    labels = TRUE,
+    scaled = TRUE,
+    label_cutoff = 1,
+    width = 110
+  ) |>
+  tab_style_hhs(border_cols = 2:3)
+
+#### save the body region overall counts gt table ----
+gt::gtsave(
+  data = overall_body_region_counts_gt,
+  filename = "overall_body_region_counts_gt.png",
+  path = output_folder
+)
+
+## get counts of injury events by mechanism and body region ----
+body_region_counts <- trauma_2025 |>
+  dplyr::mutate(
+    dplyr::across(
+      c(CAUSE_OF_INJURY_AR_1, BODY_REGION_CATEGORY_LEVEL_1_1),
+      ~ ifelse(
+        is.na(.) | grepl(pattern = "unspec|unclass", x = ., ignore.case = TRUE),
+        "Unspecified",
+        .
+      )
+    ),
+    CAUSE_OF_INJURY_AR_1 = ifelse(
+      grepl(pattern = "fall", x = CAUSE_OF_INJURY_AR_1, ignore.case = TRUE),
+      "All Falls",
+      CAUSE_OF_INJURY_AR_1
+    ),
+    BODY_REGION_CATEGORY_LEVEL_1_1 = ifelse(
+      grepl(
+        pattern = "head",
+        x = BODY_REGION_CATEGORY_LEVEL_1_1,
+        ignore.case = TRUE
+      ),
+      "Head and Neck all",
+      BODY_REGION_CATEGORY_LEVEL_1_1
+    )
+  ) |>
+  dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  janitor::tabyl(BODY_REGION_CATEGORY_LEVEL_1_1, CAUSE_OF_INJURY_AR_1) |>
+  janitor::adorn_totals(where = "col") |>
+  dplyr::mutate(
+    dplyr::across(`All Falls`:Unspecified, ~ ifelse(. > 0 & . < 6, NA, .))
+  ) |>
+  dplyr::arrange(desc(Total))
+
+## a gt table of the body region vs mechanism counts ----
+body_region_counts_gt <- body_region_counts |>
+  gt::gt() |>
+  gt::cols_label(
+    BODY_REGION_CATEGORY_LEVEL_1_1 ~ "Body Region"
+  ) |>
+  gt::fmt_missing(columns = tidyselect::everything()) |>
+  gt::tab_footnote(
+    footnote = small_count_message,
+    locations = list(
+      gt::cells_body(columns = "Firearm", rows = 5),
+      gt::cells_body(columns = "Poisoning", rows = 1:3)
+    )
+  ) |>
+  gt::fmt_number(
+    columns = 2:tidyselect::last_col(),
+    drop_trailing_zeros = TRUE
+  ) |>
+  tab_style_hhs(
+    border_cols = 2:tidyselect::last_col()
+  )
+
+### export the body region gt table ----
+gt::gtsave(
+  data = body_region_counts_gt,
+  filename = "body_region_counts_gt.png",
+  path = output_folder
+)
+
+### make the gt table into a workbook
+body_region_counts_wb <- openxlsx2::wb_workbook() |>
+  openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
+  gtxlsx::wb_add_gt(x = body_region_counts_gt)
+
+### export the gt table as .xlsx
+openxlsx2::wb_save(
+  wb = body_region_counts_wb,
+  file = paste0(output_folder, "/body_region_counts_gt.xlsx"),
+  overwrite = TRUE
+)
+
+###___________________________________________________________________________
+# Special cases ----
+###___________________________________________________________________________
+
+## get statistics on special cases of injuries ----
+
+### work related and ag ---
 work_related_agricultural <- trauma_data_clean |>
   dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
   dplyr::summarize(
@@ -135,19 +398,19 @@ work_related_agricultural <- trauma_data_clean |>
     .by = Year
   )
 
-# reinjury ----
+## reinjury ----
 
-# patients that were reinjured ----
+### patients that were reinjured ----
 reinjury_patient_statistics <- trauma_data_clean |>
   reinjury_patient_count(Year, descriptive_stats = TRUE) |>
   dplyr::select(-c(9:14))
 
-# injuries that occurred as reinjuries ----
+### injuries that occurred as reinjuries ----
 reinjury_injury_statistics <- trauma_data_clean |>
   reinjury_injury_count(Year, descriptive_stats = TRUE) |>
   dplyr::select(-c(8:13))
 
-# prepare data for a gt table ----
+### prepare data for a gt table ----
 reinjury_data_prep <- reinjury_patient_statistics |>
   dplyr::select(Year, reinjured_patients, n_patients, prop_reinjured) |>
   dplyr::left_join(
@@ -156,7 +419,7 @@ reinjury_data_prep <- reinjury_patient_statistics |>
     by = dplyr::join_by(Year)
   )
 
-# reinjury gt table ----
+### reinjury gt table ----
 reinjury_gt <- reinjury_data_prep |>
   gt::gt() |>
   gt::cols_label(
@@ -178,13 +441,11 @@ reinjury_gt <- reinjury_data_prep |>
     body = 16
   )
 
-# save the gt reinjury table ----
+### save the gt reinjury table ----
 gt::gtsave(data = reinjury_gt, filename = "reinjury_gt.png", path = plot_folder)
 
-# get counts of the nature of injury and body regions ----
-
 ###_____________________________________________________________________________
-## Body Region ----
+# Body Region ----
 ###_____________________________________________________________________________
 
 ####
