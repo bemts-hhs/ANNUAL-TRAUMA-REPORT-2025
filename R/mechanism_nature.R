@@ -11,7 +11,7 @@
 mechanism_of_injury_counts <- trauma_data_clean |>
   dplyr::filter(!is.na(CAUSE_OF_INJURY_AR_1)) |>
   injury_incident_count(Year, CAUSE_OF_INJURY_AR_1) |>
-  dplyr::mutate(percent = n / sum(n), .by = Year)
+  dplyr::mutate(valid_percent = n / sum(n), .by = Year)
 
 # get a subset of the counts for the plot ----
 mechanism_of_injury_counts_select <- mechanism_of_injury_counts |>
@@ -71,7 +71,7 @@ ggplot2::ggsave(
 mechanism_of_injury_counts_quarterly <- trauma_data_clean |>
   dplyr::filter(!is.na(CAUSE_OF_INJURY_AR_1)) |>
   injury_incident_count(Admission_Quarter, CAUSE_OF_INJURY_AR_1) |>
-  dplyr::mutate(percent = n / sum(n), .by = Admission_Quarter) |>
+  dplyr::mutate(valid_percent = n / sum(n), .by = Admission_Quarter) |>
   dplyr::group_by(Admission_Quarter) |>
   dplyr::arrange(desc(n), .by_group = TRUE) |>
   dplyr::ungroup()
@@ -127,15 +127,15 @@ ggplot2::ggsave(
 
 ## get injury counts by nature of injury category ----
 nature_of_injury_counts <- trauma_2025 |>
+  dplyr::filter(
+    !is.na(CAUSE_OF_INJURY_AR_1),
+    !is.na(NATURE_OF_INJURY_DESCRIPTOR_1)
+  ) |>
   dplyr::mutate(
     CAUSE_OF_INJURY_AR_1 = ifelse(
       grepl(pattern = "fall", x = CAUSE_OF_INJURY_AR_1, ignore.case = TRUE),
       "Falls",
       CAUSE_OF_INJURY_AR_1
-    ),
-    dplyr::across(
-      c(NATURE_OF_INJURY_DESCRIPTOR_1, CAUSE_OF_INJURY_AR_1),
-      ~ ifelse(is.na(.), "Unspecified", .)
     )
   ) |>
   injury_incident_count(CAUSE_OF_INJURY_AR_1, NATURE_OF_INJURY_DESCRIPTOR_1) |>
@@ -150,21 +150,21 @@ nature_of_injury_counts <- trauma_2025 |>
   dplyr::rowwise() |>
   dplyr::mutate(
     Total = sum(
-      dplyr::c_across(Falls:Unspecified),
+      dplyr::c_across(Falls:tidyselect::last_col()),
       na.rm = TRUE
     )
   ) |>
   dplyr::ungroup() |>
   dplyr::mutate(
-    Percent = scales::percent(Total / sum(Total), accuracy = 0.01)
+    Valid_Percent = scales::percent(Total / sum(Total), accuracy = 0.01)
   ) |>
-  dplyr::arrange(desc(Total))
+  dplyr::arrange(desc(Total)) |>
+  janitor::adorn_totals(where = "row")
 
 ## nature of injury gt table ----
 # use data in this table for the narrative
 nature_of_injury_gt <- nature_of_injury_counts |>
-  dplyr::filter(NATURE_OF_INJURY_DESCRIPTOR_1 != "Unspecified") |>
-  dplyr::select(-c(Unspecified, Poisoning)) |>
+  dplyr::select(-Poisoning) |>
   dplyr::slice_head(n = 5) |>
   dplyr::mutate(
     dplyr::across(Falls:`Struck by/against`, ~ ifelse(. < 6, NA, .))
@@ -172,7 +172,8 @@ nature_of_injury_gt <- nature_of_injury_counts |>
   gt::gt() |>
   gt::fmt_missing(columns = 2:6) |>
   gt::cols_label(
-    NATURE_OF_INJURY_DESCRIPTOR_1 ~ "Nature of Injury"
+    NATURE_OF_INJURY_DESCRIPTOR_1 ~ "Nature of Injury",
+    Valid_Percent ~ "Percent"
   ) |>
   gt::fmt_number(columns = 2:7, drop_trailing_zeros = TRUE) |>
   tab_style_hhs(
@@ -181,9 +182,13 @@ nature_of_injury_gt <- nature_of_injury_counts |>
   gt::tab_footnote(
     footnote = small_count_message,
     locations = gt::cells_body(
-      columns = c(Falls, Firearm, `Struck by/against`),
+      columns = c(Firearm, `Struck by/against`),
       rows = 5
     )
+  ) |>
+  gt::tab_footnote(
+    footnote = "Percentage excludes missing ICD-10 diagnosis and injury records.",
+    locations = gt::cells_column_labels(columns = Valid_Percent)
   )
 
 ### save the nature of injury gt table ----
@@ -250,6 +255,7 @@ ggplot2::ggsave(
 
 ## get counts of injury events by body region ----
 overall_body_region_counts <- trauma_2025 |>
+  dplyr::filter(!is.na(BODY_REGION_CATEGORY_LEVEL_1_1)) |>
   dplyr::mutate(
     dplyr::across(
       c(CAUSE_OF_INJURY_AR_1, BODY_REGION_CATEGORY_LEVEL_1_1),
@@ -368,27 +374,389 @@ gt::gtsave(
   path = output_folder
 )
 
-### make the gt table into a workbook
-body_region_counts_wb <- openxlsx2::wb_workbook() |>
-  openxlsx2::wb_add_worksheet(grid_lines = FALSE) |>
-  gtxlsx::wb_add_gt(x = body_region_counts_gt)
+###___________________________________________________________________________
+## Traumatic Brain Injury ----
+###___________________________________________________________________________
 
-### export the gt table as .xlsx
-openxlsx2::wb_save(
-  wb = body_region_counts_wb,
-  file = paste0(output_folder, "/body_region_counts_gt.xlsx"),
-  overwrite = TRUE
+### cases ----
+tbi_related_cases <- trauma_data_clean |>
+  injury_case_count(
+    Year,
+    TBI,
+    descriptive_stats = TRUE,
+    group = TBI
+  ) |>
+  dplyr::filter(TBI) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_case_count(Year),
+    by = dplyr::join_by(Year),
+    suffix = c("_tbi", "_total")
+  ) |>
+  dplyr::mutate(
+    pct_tbi = n_tbi / n_total,
+    pct_label = scales::percent(pct_tbi, accuracy = 0.01)
+  )
+
+#### write TBI related cases to disk ----
+readr::write_csv(
+  x = tbi_related_cases,
+  file = paste0(output_folder, "/tbi_related_cases.csv")
+)
+
+### injury events ----
+tbi_related_injuries <- trauma_data_clean |>
+  dplyr::mutate(
+    TBI = as.logical(max(TBI)),
+    .by = c(Incident_Date, Unique_Patient_ID)
+  ) |>
+  injury_incident_count(
+    Year,
+    TBI,
+    descriptive_stats = TRUE,
+    group = TBI
+  ) |>
+  dplyr::filter(TBI == 1) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_incident_count(Year),
+    suffix = c("_tbi", "_total"),
+    by = dplyr::join_by(Year)
+  ) |>
+  dplyr::select(-tidyselect::matches("reinjury")) |>
+  dplyr::mutate(
+    pct_tbi = n_tbi / n_total,
+    pct_label = scales::percent(pct_tbi, accuracy = 0.01)
+  )
+
+#### write the tbi injury events by year to disk ----
+readr::write_csv(
+  x = tbi_related_injuries,
+  file = paste0(output_folder, "/tbi_related_injuries.csv")
+)
+
+### further analysis of TBI events ----
+tbi_injury_event_data <- trauma_2025 |>
+  dplyr::mutate(TBI = max(TBI), .by = c(Incident_Date, Unique_Patient_ID)) |>
+  dplyr::filter(!is.na(CAUSE_OF_INJURY_AR_1)) |>
+  dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = T) |>
+  janitor::tabyl(CAUSE_OF_INJURY_AR_1, TBI) |>
+  dplyr::arrange(desc(`1` / (`1` + `0`))) |>
+  janitor::adorn_totals(where = "both") |>
+  dplyr::rename(TBI = `1`, Non_TBI = `0`) |>
+  dplyr::mutate(pct_tbi = TBI / Total, .before = Total)
+
+#### write the TBI event data (no missing mechanism) to disk ----
+readr::write_csv(
+  x = tbi_injury_event_data,
+  file = paste0(output_folder, "/tbi_injury_event_data.csv")
+)
+
+### create two time series objects related to TBI for a line plot ----
+#### tbi injuries by mechanism monthly ----
+tbi_injury_event_cause_monthly <- trauma_data_clean |>
+  dplyr::filter(
+    !is.na(CAUSE_OF_INJURY_AR_1),
+    grepl(
+      pattern = "fall|mvc|other|struck",
+      x = CAUSE_OF_INJURY_AR_1,
+      ignore.case = TRUE
+    )
+  ) |>
+  dplyr::mutate(TBI = max(TBI), .by = c(Incident_Date, Unique_Patient_ID)) |>
+  dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  dplyr::summarize(
+    TBI_CAUSE = sum(TBI, na.rm = TRUE),
+    .by = c(CAUSE_OF_INJURY_AR_1, Admission_Month)
+  )
+
+##### write the tbi injuries monthly by cause to disk ----
+readr::write_csv(
+  x = tbi_injury_event_cause_monthly,
+  file = paste0(output_folder, "/tbi_injury_event_cause_monthly.csv")
+)
+
+#### tbi injury events overall monthly ----
+tbi_injury_event_overall_monthly <- trauma_data_clean |>
+  dplyr::mutate(TBI = max(TBI), .by = c(Incident_Date, Unique_Patient_ID)) |>
+  dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  dplyr::summarize(
+    TBI = sum(TBI, na.rm = TRUE),
+    .by = Admission_Month
+  )
+
+#### tbi injury event plot ----
+tbi_injury_event_plot <- tbi_injury_event_overall_monthly |>
+  ggplot2::ggplot() +
+  ggplot2::geom_line(
+    ggplot2::aes(
+      x = Admission_Month,
+      y = TBI,
+    ),
+    color = "black",
+    linewidth = 1.25,
+    lineend = "round",
+    linejoin = "round"
+  ) +
+  ggplot2::labs(
+    x = "",
+    y = ""
+  ) +
+  ggplot2::guides(color = "none") +
+  ggplot2::scale_x_date(date_labels = "%Y-%m", date_breaks = "4 months") +
+  ggthemes::theme_tufte(base_size = 14, base_family = "Work Sans") +
+  ggplot2::theme(
+    axis.text.y = ggplot2::element_text(size = 25),
+    axis.text.x = ggplot2::element_text(size = 25, angle = 90)
+  )
+
+##### save the tbi injury event plot to disk ----
+ggplot2::ggsave(
+  filename = "tbi_injury_event_plot.png",
+  plot = tbi_injury_event_plot,
+  path = plot_folder
+)
+
+### patients  ----
+tbi_related_patients <- trauma_data_clean |>
+  dplyr::mutate(TBI = as.logical(max(TBI)), .by = c(Year, Unique_Patient_ID)) |>
+  injury_patient_count(
+    Year,
+    TBI,
+    descriptive_stats = TRUE,
+    group = TBI
+  ) |>
+  dplyr::filter(TBI) |>
+  dplyr::left_join(
+    trauma_data_clean |>
+      injury_patient_count(Year, TBI) |>
+      dplyr::mutate(
+        percent = n / sum(n),
+        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
+        .by = Year
+      ) |>
+      dplyr::filter(TBI) |>
+      dplyr::select(-n),
+    by = dplyr::join_by(Year, TBI)
+  )
+
+#### write patient data to disk ----
+readr::write_csv(
+  x = tbi_related_patients,
+  file = paste0(output_folder, "/tbi_related_patients.csv")
 )
 
 ###___________________________________________________________________________
 # Special cases ----
 ###___________________________________________________________________________
 
+## e-scooter and e-bike injuries ----
+
+### identify errors in injury coding ----
+escooter_ebike_errors <- trauma_data_clean |>
+  dplyr::mutate(
+    dplyr::across(
+      tidyselect::matches("escooter|ebike|^tbi$"),
+      ~ as.logical(max(., na.rm = TRUE))
+    ),
+    .by = c(Year, Incident_Date, Unique_Patient_ID)
+  ) |>
+  dplyr::distinct(Year, Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  dplyr::filter(All_EScooter & All_EBike) |>
+  dplyr::select(Unique_Incident_ID, tidyselect::matches("escooter|ebike")) |>
+  dplyr::pull(Unique_Incident_ID)
+
+### data prep for escooter, ebike, and TBI analyses ----
+# correct one record that had an e-bike and e-scooter code
+# the record was clearly an e-scooter injury, keep as e-scooter
+escooter_ebike_data <- trauma_data_clean |>
+  dplyr::mutate(
+    dplyr::across(
+      tidyselect::matches("escooter|ebike|^tbi$"),
+      ~ as.logical(max(., na.rm = TRUE))
+    ),
+    .by = c(Year, Incident_Date, Unique_Patient_ID)
+  ) |>
+  dplyr::distinct(Year, Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  dplyr::mutate(
+    All_EBike = ifelse(
+      Unique_Incident_ID == escooter_ebike_errors,
+      FALSE,
+      All_EBike
+    )
+  )
+
+### estimate total counts and percentages ----
+escooter_ebike_statistics <- escooter_ebike_data |>
+  dplyr::summarize(
+    dplyr::across(
+      tidyselect::matches("escooter|ebike"),
+      ~ sum(., na.rm = TRUE)
+    ),
+    .by = TBI
+  ) |>
+  tidyr::pivot_longer(
+    cols = -TBI,
+    names_to = "Micromobility",
+    values_to = "n"
+  ) |>
+  tidyr::pivot_wider(
+    id_cols = Micromobility,
+    names_from = TBI,
+    values_from = n
+  ) |>
+  dplyr::rename(
+    No_TBI = `FALSE`,
+    TBI = `TRUE`
+  ) |>
+  janitor::adorn_totals(where = "col") |>
+  dplyr::mutate(percent = ifelse(Total > 0, TBI / Total, 0)) |>
+  dplyr::arrange(desc(TBI)) |>
+  dplyr::bind_rows(
+    escooter_ebike_data |>
+      injury_incident_count(TBI) |>
+      tidyr::pivot_wider(names_from = TBI, values_from = n) |>
+      dplyr::mutate(Micromobility = "All Injuries", .before = 1) |>
+      dplyr::rename("No_TBI" = `FALSE`, TBI = `TRUE`) |>
+      dplyr::mutate(
+        Total = No_TBI + TBI,
+        percent = ifelse(Total > 0, TBI / Total, 0)
+      )
+  ) |>
+  dplyr::mutate(
+    label = scales::percent(x = percent, accuracy = 0.01)
+  ) |>
+  dplyr::mutate(
+    Micromobility = stringr::str_replace_all(
+      string = stringr::str_replace_all(
+        string = Micromobility,
+        pattern = "E(Bike|Scooter)",
+        replacement = "E-\\1"
+      ),
+      pattern = "_",
+      replacement = " "
+    )
+  )
+
+### estimate total counts and percentages over years ----
+escooter_ebike_statistics_years <- escooter_ebike_data |>
+  dplyr::summarize(
+    dplyr::across(
+      tidyselect::matches("escooter|ebike"),
+      ~ sum(., na.rm = TRUE)
+    ),
+    .by = c(Year, TBI)
+  ) |>
+  tidyr::pivot_longer(
+    cols = -c(Year, TBI),
+    names_to = "Micromobility",
+    values_to = "n"
+  ) |>
+  tidyr::pivot_wider(
+    id_cols = c(Year, Micromobility),
+    names_from = TBI,
+    values_from = n
+  ) |>
+  dplyr::rename(
+    No_TBI = `FALSE`,
+    TBI = `TRUE`
+  ) |>
+  janitor::adorn_totals(where = "col") |>
+  dplyr::mutate(percent = ifelse(Total > 0, TBI / Total, 0)) |>
+  dplyr::bind_rows(
+    escooter_ebike_data |>
+      injury_incident_count(Year, TBI) |>
+      tidyr::pivot_wider(id_cols = Year, names_from = TBI, values_from = n) |>
+      dplyr::mutate(Micromobility = "All Injuries", .before = 2) |>
+      dplyr::rename("No_TBI" = `FALSE`, TBI = `TRUE`) |>
+      dplyr::mutate(
+        Total = No_TBI + TBI,
+        percent = ifelse(Total > 0, TBI / Total, 0)
+      )
+  ) |>
+  dplyr::mutate(
+    label = scales::percent(x = percent, accuracy = 0.01)
+  ) |>
+  dplyr::arrange(Year, Micromobility) |>
+  dplyr::mutate(
+    Micromobility = stringr::str_replace_all(
+      string = stringr::str_replace_all(
+        string = Micromobility,
+        pattern = "E(Bike|Scooter)",
+        replacement = "E-\\1"
+      ),
+      pattern = "_",
+      replacement = " "
+    )
+  )
+
+#### get plot legend label order ----
+escooter_ebike_legend_order <- escooter_ebike_statistics |>
+  dplyr::filter(!grepl("^all|tbi", Micromobility, ignore.case = T)) |>
+  dplyr::arrange(desc(TBI)) |>
+  dplyr::pull(Micromobility)
+
+#### plot the e-scooter/e-bike stats over time ----
+escooter_ebike_statistics_years |>
+  dplyr::filter(
+    !grepl(
+      pattern = "tbi|^all.*",
+      x = Micromobility,
+      ignore.case = TRUE
+    )
+  ) |>
+  dplyr::mutate(
+    Micromobility = stringr::str_replace_all(
+      string = stringr::str_replace_all(
+        string = Micromobility,
+        pattern = "E(Bike|Scooter)",
+        replacement = "E-\\1"
+      ),
+      pattern = "_",
+      replacement = " "
+    ),
+    Micromobility = factor(Micromobility, levels = escooter_ebike_legend_order)
+  ) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_line(
+    ggplot2::aes(
+      x = factor(Year),
+      y = TBI,
+      color = Micromobility,
+      group = Micromobility,
+      alpha = 0.8
+    ),
+    linetype = "solid"
+  ) +
+  ggplot2::geom_line(
+    ggplot2::aes(
+      x = factor(Year),
+      y = No_TBI,
+      color = Micromobility,
+      group = Micromobility,
+      alpha = 0.8
+    ),
+    linetype = "dotted",
+    linewidth = 1.25
+  ) +
+  ggplot2::labs(
+    x = "",
+    y = ""
+  ) +
+  ggplot2::guides(alpha = "none") +
+  ggthemes::theme_tufte(base_size = 20, base_family = "Work Sans") +
+  ggplot2::scale_y_continuous(labels = function(x) {
+    traumar::pretty_number(x = x, digits = 2)
+  }) +
+  paletteer::scale_color_paletteer_d(
+    palette = "colorblindr::OkabeIto_black"
+  )
+
 ## get statistics on special cases of injuries ----
 
-### work related and ag ---
+## work related and ag ---
 work_related_agricultural <- trauma_data_clean |>
-  dplyr::distinct(Incident_Date, Unique_Patient_ID, .keep_all = TRUE) |>
+  dplyr::distinct(Unique_Incident_ID, .keep_all = TRUE) |>
   dplyr::summarize(
     work_related = sum(Financial_Work_Related == "Yes", na.rm = TRUE),
     ag_related = sum(Farm_Ag_Related == "Yes", na.rm = TRUE),
@@ -443,344 +811,3 @@ reinjury_gt <- reinjury_data_prep |>
 
 ### save the gt reinjury table ----
 gt::gtsave(data = reinjury_gt, filename = "reinjury_gt.png", path = plot_folder)
-
-###_____________________________________________________________________________
-# Body Region ----
-###_____________________________________________________________________________
-
-####
-# You must first run data_load.R and setup.R before running this script
-####
-
-### IPOP nature of injury frequency ----
-ipop_nature_injury_freq <- ipop_data_clean |>
-  dplyr::filter(Year == 2024) |>
-  dplyr::mutate(
-    NATURE_OF_INJURY_DESCRIPTOR = dplyr::if_else(
-      NATURE_OF_INJURY_DESCRIPTOR %in% c("Unspecified", "Other specified"),
-      "Other",
-      NATURE_OF_INJURY_DESCRIPTOR
-    )
-  ) |>
-  ipop_case_count(
-    NATURE_OF_INJURY_DESCRIPTOR,
-    which = "Inpatient"
-  ) |>
-  dplyr::arrange(desc(n)) |>
-  tidyr::replace_na(list(NATURE_OF_INJURY_DESCRIPTOR = "Missing")) |>
-  dplyr::mutate(
-    mod = sqrt(n),
-    angle = 2 * pi * rank(mod) / dplyr::n(),
-    angle_mod = cos(angle)
-  )
-
-#### plot nature of injury frequency via area chart ----
-# if this plot saves dark, you can load in Paint, edit size down, and it will turn to white background
-ipop_nature_injury_freq_plot <- ipop_nature_injury_freq |>
-  ggplot2::ggplot(ggplot2::aes(
-    x = reorder(
-      stringr::str_wrap(NATURE_OF_INJURY_DESCRIPTOR, width = 5),
-      -mod
-    ),
-    y = mod,
-    fill = mod,
-    label = ifelse(
-      n >= 6,
-      traumar::pretty_number(n, n_decimal = 2),
-      traumar::small_count_label(var = n, cutoff = 6, replacement = "*")
-    )
-  )) +
-  ggplot2::geom_col(position = "dodge2", show.legend = TRUE, alpha = 0.9) +
-  # First segment: from the top of the bar to just before the text
-  ggplot2::geom_segment(
-    ggplot2::aes(
-      x = reorder(stringr::str_wrap(NATURE_OF_INJURY_DESCRIPTOR, 5), -mod),
-      xend = reorder(stringr::str_wrap(NATURE_OF_INJURY_DESCRIPTOR, 5), -mod),
-      y = mod, # Start at the top of the bar
-      yend = dplyr::if_else(
-        NATURE_OF_INJURY_DESCRIPTOR == "Fracture",
-        mod,
-        max(mod) - 2
-      ) # End just before the text
-    ),
-    linetype = "dashed",
-    color = "#F27026"
-  ) +
-  ggplot2::geom_label(
-    fill = dplyr::if_else(
-      ipop_nature_injury_freq$NATURE_OF_INJURY_DESCRIPTOR == "Fracture",
-      "transparent",
-      "white"
-    ),
-    nudge_y = dplyr::if_else(
-      ipop_nature_injury_freq$NATURE_OF_INJURY_DESCRIPTOR == "Fracture",
-      -10,
-      20
-    ),
-    color = dplyr::if_else(
-      ipop_nature_injury_freq$NATURE_OF_INJURY_DESCRIPTOR == "Fracture",
-      "transparent",
-      "white"
-    )
-  ) +
-  ggplot2::geom_text(
-    nudge_y = dplyr::if_else(
-      ipop_nature_injury_freq$NATURE_OF_INJURY_DESCRIPTOR == "Fracture",
-      -12,
-      20
-    ),
-    family = "Work Sans",
-    fontface = "bold",
-    color = dplyr::if_else(
-      ipop_nature_injury_freq$NATURE_OF_INJURY_DESCRIPTOR == "Fracture",
-      "white",
-      "black"
-    ),
-    size = 15
-  ) +
-  ggplot2::coord_radial(clip = "off", inner.radius = 0.15) +
-  ggplot2::labs(
-    x = "",
-    y = "",
-    fill = stringr::str_wrap("Orange to blue High to low count", width = 15)
-  ) +
-  paletteer::scale_fill_paletteer_c(
-    palette = "ggthemes::Orange-Blue Diverging",
-    direction = -1
-  ) +
-  traumar::theme_cleaner(
-    base_size = 30,
-    axis.text.y = ggplot2::element_blank(),
-    legend_position = "right"
-  ) +
-  ggplot2::theme(
-    legend.text = ggplot2::element_blank(),
-    plot.background = ggplot2::element_rect(
-      fill = "transparent",
-      color = "transparent"
-    )
-  )
-
-#### save the nature of injury frequency plot for the IPOP data ----
-ggplot2::ggsave(
-  filename = "ipop_nature_injury_freq_plot.png",
-  plot = ipop_nature_injury_freq_plot,
-  path = plot_folder,
-  height = 15,
-  width = 15 * 1.78
-)
-
-### IPOP body region injury frequency table ----
-ipop_body_region <- ipop_data_clean |>
-  dplyr::filter(Year == 2024) |>
-  tidyr::replace_na(list(
-    BODY_REGION_CATEGORY_LEVEL_1 = "Unclassifiable by body region"
-  )) |>
-  ipop_case_count(
-    BODY_REGION_CATEGORY_LEVEL_1,
-    which = "Inpatient"
-  ) |>
-  dplyr::arrange(desc(n)) |>
-  dplyr::mutate(
-    BODY_REGION_CATEGORY_LEVEL_1 = stringr::str_replace(
-      string = BODY_REGION_CATEGORY_LEVEL_1,
-      pattern = "&",
-      replacement = "/"
-    ),
-    BODY_REGION_CATEGORY_LEVEL_1 = dplyr::if_else(
-      grepl(
-        pattern = "unclass",
-        x = BODY_REGION_CATEGORY_LEVEL_1,
-        ignore.case = TRUE
-      ),
-      "Unclassifiable",
-      dplyr::if_else(
-        grepl(
-          pattern = "head and neck",
-          x = BODY_REGION_CATEGORY_LEVEL_1,
-          ignore.case = TRUE
-        ),
-        "Head and neck",
-        BODY_REGION_CATEGORY_LEVEL_1
-      )
-    ),
-    mod = sqrt(n),
-    angle = 2 * pi * rank(mod) / dplyr::n(),
-    angle_mod = cos(angle)
-  )
-
-#### make the circular bar plot ----
-ipop_body_region_plot <- ipop_body_region |>
-  ggplot2::ggplot(ggplot2::aes(
-    x = reorder(BODY_REGION_CATEGORY_LEVEL_1, -mod),
-    y = mod,
-    fill = mod,
-    label = traumar::pretty_number(n, n_decimal = 2)
-  )) +
-  ggplot2::geom_col(position = "dodge2", width = 0.5) +
-  ggplot2::geom_text(
-    family = "Work Sans",
-    size = 15,
-    color = c(rep("white", 2), rep("black", 4)),
-    fontface = "bold",
-    nudge_y = c(-15, -15, 9, 8, 10, 8)
-  ) +
-  #ylim(-1, 9.1) +
-  ggplot2::labs(
-    x = "",
-    y = "",
-    fill = stringr::str_wrap("Dark to light red High to low count", width = 19)
-  ) +
-  paletteer::scale_fill_paletteer_c(
-    palette = "grDevices::Reds",
-    direction = -1
-  ) +
-  ggplot2::coord_radial(start = 0, clip = "off") +
-  traumar::theme_cleaner(
-    base_size = 30,
-    axis.text.y = ggplot2::element_blank(),
-    legend_position = "top"
-  ) +
-  ggplot2::theme(
-    legend.text = ggplot2::element_blank(),
-    plot.background = ggplot2::element_rect(
-      fill = "transparent",
-      color = "transparent"
-    )
-  )
-
-##### save the body region injury frequency plot ----
-ggplot2::ggsave(
-  filename = "ipop_body_region_plot.png",
-  plot = ipop_body_region_plot,
-  path = plot_folder,
-  height = 15,
-  width = 15 * 1.78
-)
-
-###___________________________________________________________________________
-### Traumatic Brain Injury ----
-###___________________________________________________________________________
-
-#### cases ----
-tbi_related_cases <- trauma_data_clean |>
-  injury_case_count(
-    Year,
-    TBI,
-    descriptive_stats = TRUE,
-    group = TBI
-  ) |>
-  dplyr::filter(TBI) |>
-  dplyr::left_join(
-    trauma_data_clean |>
-      injury_case_count(Year, TBI) |>
-      dplyr::mutate(
-        percent = n / sum(n),
-        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
-        .by = Year
-      ) |>
-      dplyr::filter(TBI) |>
-      dplyr::select(-n),
-    by = dplyr::join_by(Year, TBI)
-  )
-
-#### injury events ----
-tbi_related_injuries <- trauma_data_clean |>
-  injury_incident_count(
-    Year,
-    TBI,
-    descriptive_stats = TRUE,
-    group = TBI
-  ) |>
-  dplyr::filter(TBI) |>
-  dplyr::left_join(
-    trauma_data_clean |>
-      injury_incident_count(Year, TBI) |>
-      dplyr::mutate(
-        percent = n / sum(n),
-        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
-        .by = Year
-      ) |>
-      dplyr::filter(TBI) |>
-      dplyr::select(-n),
-    by = dplyr::join_by(Year, TBI)
-  ) |>
-  dplyr::select(-tidyselect::matches("reinjury"))
-
-##### extract annual tbi percentages of total injury events for caption ----
-tbi_pct_labels <- tbi_related_injuries |> dplyr::pull(percent_label)
-
-##### take pct labels and make it into a caption ----
-tbi_caption <- paste0(
-  "[",
-  paste0(tbi_pct_labels[1:length(tbi_pct_labels) - 1], collapse = ", "),
-  ", and ",
-  tbi_pct_labels[length(tbi_pct_labels)],
-  "]"
-)
-
-##### tbi injury event plot ----
-tbi_injury_event_plot <- tbi_related_injuries |>
-  ggplot2::ggplot() +
-  ggplot2::geom_col(
-    ggplot2::aes(x = Year, y = n),
-    position = "dodge",
-    width = 0.75,
-    color = "transparent",
-    fill = "coral"
-  ) +
-  ggplot2::geom_text(
-    ggplot2::aes(
-      x = Year,
-      y = n * 0.05,
-      label = prettyNum(n, big.mark = ",")
-    ),
-    family = "Work Sans",
-    color = "white",
-    fontface = "bold",
-    size = 6
-  ) +
-  ggplot2::guides(color = "none", fill = "none") +
-  ggplot2::labs(
-    title = "Iowa TBI Injury Event Counts by Year",
-    subtitle = "Source: Iowa Trauma Registry || Years: 2021-2025",
-    x = "",
-    y = ""
-  ) +
-  ggthemes::theme_tufte(base_size = 14, base_family = "Work Sans") +
-  ggplot2::theme(
-    plot.title = ggplot2::element_text(size = 18),
-    plot.subtitle = ggplot2::element_text(size = 16),
-    axis.text.x = ggplot2::element_text(size = 14),
-    axis.text.y = ggplot2::element_blank(),
-    axis.ticks.y = ggplot2::element_blank()
-  )
-
-###### save the tbi injury event plot to disk ----
-ggplot2::ggsave(
-  filename = "tbi_injury_event_plot.png",
-  plot = tbi_injury_event_plot,
-  path = plot_folder
-)
-
-#### patients  ----
-tbi_related_patients <- trauma_data_clean |>
-  injury_patient_count(
-    Year,
-    TBI,
-    descriptive_stats = TRUE,
-    group = TBI
-  ) |>
-  dplyr::filter(TBI) |>
-  dplyr::left_join(
-    trauma_data_clean |>
-      injury_patient_count(Year, TBI) |>
-      dplyr::mutate(
-        percent = n / sum(n),
-        percent_label = traumar::pretty_percent(percent, n_decimal = 2),
-        .by = Year
-      ) |>
-      dplyr::filter(TBI) |>
-      dplyr::select(-n),
-    by = dplyr::join_by(Year, TBI)
-  )
