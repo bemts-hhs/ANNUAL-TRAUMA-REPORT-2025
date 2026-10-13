@@ -96,6 +96,11 @@ mechanism_of_injury_lines <- mechanism_of_injury_counts_quarterly |>
     limits = c(as.Date("2021-01-01"), as.Date("2025-12-01"))
   ) +
   ggthemes::theme_tufte(base_size = 18, base_family = "Work Sans") +
+  ggplot2::scale_y_continuous(
+    labels = function(x) {
+      x <- ifelse(x < 1000, x, traumar::pretty_number(x = x, digits = 2))
+    }
+  ) +
   paletteer::scale_color_paletteer_d(palette = "colorblindr::OkabeIto_black") +
   ggplot2::theme(
     axis.text = ggplot2::element_text(size = 20, family = "Work Sans"),
@@ -170,7 +175,7 @@ nature_of_injury_gt <- nature_of_injury_counts |>
     dplyr::across(Falls:`Struck by/against`, ~ ifelse(. < 6, NA, .))
   ) |>
   gt::gt() |>
-  gt::fmt_missing(columns = 2:6) |>
+  gt::sub_missing(columns = 2:6) |>
   gt::cols_label(
     NATURE_OF_INJURY_DESCRIPTOR_1 ~ "Nature of Injury",
     Valid_Percent ~ "Percent"
@@ -351,7 +356,7 @@ body_region_counts_gt <- body_region_counts |>
   gt::cols_label(
     BODY_REGION_CATEGORY_LEVEL_1_1 ~ "Body Region"
   ) |>
-  gt::fmt_missing(columns = tidyselect::everything()) |>
+  gt::sub_missing(columns = tidyselect::everything()) |>
   gt::tab_footnote(
     footnote = small_count_message,
     locations = list(
@@ -610,8 +615,9 @@ escooter_ebike_statistics <- escooter_ebike_data |>
     TBI = `TRUE`
   ) |>
   janitor::adorn_totals(where = "col") |>
-  dplyr::mutate(percent = ifelse(Total > 0, TBI / Total, 0)) |>
-  dplyr::arrange(desc(TBI)) |>
+  dplyr::mutate(
+    percent = ifelse(Total > 0, TBI / Total, 0)
+  ) |>
   dplyr::bind_rows(
     escooter_ebike_data |>
       injury_incident_count(TBI) |>
@@ -635,8 +641,57 @@ escooter_ebike_statistics <- escooter_ebike_data |>
       ),
       pattern = "_",
       replacement = " "
+    ),
+    Micromobility = factor(
+      Micromobility,
+      levels = c(
+        "E-Scooter Strike Fall",
+        "E-Scooter E-Bike MVC",
+        "E-Bike MVC",
+        "E-Scooter MVC",
+        "E-Scooter Non MVC",
+        "All E-Scooter",
+        "All E-Bike",
+        "All E-Scooter E-Bike",
+        "All Injuries"
+      )
     )
-  )
+  ) |>
+  dplyr::arrange(Micromobility)
+
+#### make a gt table out of the escooter/ebike counts ----
+escooter_ebike_statistics_gt <- escooter_ebike_statistics |>
+  dplyr::select(-label) |>
+  dplyr::mutate(
+    dplyr::across(
+      c(No_TBI, TBI, Total, percent),
+      ~ ifelse(Total < 6, NA, .)
+    )
+  ) |>
+  gt::gt() |>
+  gt::sub_missing(columns = No_TBI:percent) |>
+  gt::tab_footnote(
+    footnote = small_count_message,
+    locations = gt::cells_body(columns = No_TBI:percent, rows = 5)
+  ) |>
+  gt::tab_footnote(
+    footnote = "Non-MVC e-scooter injuries are distinct from MVC and\nstrike/fall incidents, usually some form of crash.",
+    location = gt::cells_body(columns = Micromobility, rows = 5)
+  ) |>
+  gt::fmt_number(columns = No_TBI:Total, drop_trailing_zeros = TRUE) |>
+  gt::fmt_percent(columns = percent) |>
+  gt::cols_label(
+    No_TBI ~ "No TBI",
+    percent ~ "Percent TBI"
+  ) |>
+  tab_style_hhs(border_cols = 2:tidyselect::last_col())
+
+##### save the escooter ebike gt table ----
+gt::gtsave(
+  data = escooter_ebike_statistics_gt,
+  filename = "escooter_ebike_statistics_gt.png",
+  path = output_folder
+)
 
 ### estimate total counts and percentages over years ----
 escooter_ebike_statistics_years <- escooter_ebike_data |>
@@ -697,7 +752,7 @@ escooter_ebike_legend_order <- escooter_ebike_statistics |>
   dplyr::pull(Micromobility)
 
 #### plot the e-scooter/e-bike stats over time ----
-escooter_ebike_statistics_years |>
+escooter_ebike_statistics_plot_years <- escooter_ebike_statistics_years |>
   dplyr::filter(
     !grepl(
       pattern = "tbi|^all.*",
@@ -752,62 +807,226 @@ escooter_ebike_statistics_years |>
     palette = "colorblindr::OkabeIto_black"
   )
 
+##### save the line graph of escooter ebike injuries over the years ----
+ggplot2::ggsave(
+  filename = "escooter_ebike_statistics_plot_years.png",
+  plot = escooter_ebike_statistics_plot_years,
+  path = plot_folder
+)
+
+### calculate quarterly escooter and ebike injury events ----
+escooter_ebike_quarterly <- escooter_ebike_data |>
+  dplyr::summarize(
+    EBike = sum(All_EBike, na.rm = TRUE),
+    EScooter = sum(All_EScooter, na.rm = TRUE),
+    .by = Admission_Quarter
+  ) |>
+  tidyr::pivot_longer(
+    cols = EBike:EScooter,
+    names_to = "Micromobility",
+    values_to = "n"
+  )
+
+#### plot the esccooter and ebike aggregates over the quarters ----
+escooter_ebike_quarterly_plot <- escooter_ebike_quarterly |>
+  dplyr::mutate(
+    Micromobility = stringr::str_replace(
+      Micromobility,
+      "E(Bike|Scooter)",
+      replacement = "E-\\1"
+    )
+  ) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_col(
+    ggplot2::aes(
+      x = Admission_Quarter,
+      y = n,
+      fill = Micromobility,
+      group = Micromobility
+    ),
+    position = "dodge"
+  ) +
+  ggplot2::labs(
+    x = "",
+    y = ""
+  ) +
+  ggthemes::theme_tufte(base_size = 20, base_family = "Work Sans") +
+  paletteer::scale_fill_paletteer_d(palette = "colorblindr::OkabeIto") +
+  ggplot2::scale_x_date(
+    date_labels = "%Y-%m",
+    date_breaks = "3 months",
+    limits = c(as.Date("2021-01-01"), as.Date("2025-10-01"))
+  ) +
+  ggplot2::theme(
+    axis.text.x = ggplot2::element_text(angle = 90),
+    legend.position = "bottom"
+  )
+
+##### save the ebike/escooter quarterly plot to disk ----
+ggplot2::ggsave(
+  filename = "escooter_ebike_quarterly_plot.png",
+  plot = escooter_ebike_quarterly_plot,
+  path = plot_folder,
+  width = 5 * (16 / 9),
+  height = 5
+)
+
 ## get statistics on special cases of injuries ----
 
-## work related and ag ---
-work_related_agricultural <- trauma_data_clean |>
-  dplyr::distinct(Unique_Incident_ID, .keep_all = TRUE) |>
+### transform data to handle work and farm/ag entries ----
+farm_ag_work_data <- trauma_data_clean |>
+  dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE)
+
+### work related and ag annual case counts and percentages ---
+work_related_agricultural <- farm_ag_work_data |>
   dplyr::summarize(
     work_related = sum(Financial_Work_Related == "Yes", na.rm = TRUE),
     ag_related = sum(Farm_Ag_Related == "Yes", na.rm = TRUE),
     n = dplyr::n(),
-    percent_work = work_related / n,
-    percent_ag = ag_related / n,
+    percent_work = scales::percent(work_related / n, accuracy = 0.01),
+    percent_ag = scales::percent(ag_related / n, accuracy = 0.01),
     .by = Year
   )
 
-## reinjury ----
+#### save the work related and farm/ag case counts to disk ----
+readr::write_csv(
+  x = work_related_agricultural,
+  file = paste0(output_folder, "/work_related_agricultural.csv")
+)
 
-### patients that were reinjured ----
-reinjury_patient_statistics <- trauma_data_clean |>
-  reinjury_patient_count(Year, descriptive_stats = TRUE) |>
-  dplyr::select(-c(9:14))
-
-### injuries that occurred as reinjuries ----
-reinjury_injury_statistics <- trauma_data_clean |>
-  reinjury_injury_count(Year, descriptive_stats = TRUE) |>
-  dplyr::select(-c(8:13))
-
-### prepare data for a gt table ----
-reinjury_data_prep <- reinjury_patient_statistics |>
-  dplyr::select(Year, reinjured_patients, n_patients, prop_reinjured) |>
-  dplyr::left_join(
-    reinjury_injury_statistics |>
-      dplyr::select(Year, Reinjury, injury_events = n, prop),
-    by = dplyr::join_by(Year)
+### farm and ag injury severity using trauma hospital cases ----
+farm_ag_injury_severity <- trauma_data_clean |>
+  dplyr::filter(Farm_Ag_Related == "Yes") |>
+  injury_case_count(Year, ISS_Range) |>
+  dplyr::mutate(
+    ISS_Range = forcats::fct(
+      x = stringr::str_replace_all(
+        string = ISS_Range,
+        pattern = " ",
+        replacement = ""
+      ),
+      levels = c("1-8", "9-15", "16+")
+    )
+  ) |>
+  dplyr::arrange(Year, ISS_Range) |>
+  tidyr::pivot_wider(id_cols = Year, names_from = ISS_Range, values_from = n) |>
+  janitor::adorn_totals(where = "both") |>
+  dplyr::mutate(
+    pct_mild = `1-8` / Total,
+    pct_moderate = `9-15` / Total,
+    pct_severe = `16+` / Total
   )
 
-### reinjury gt table ----
-reinjury_gt <- reinjury_data_prep |>
+#### create a farm/ag gt table for the injury severity analysis ----
+farm_ag_injury_severity_gt <- farm_ag_injury_severity |>
   gt::gt() |>
+  gt::tab_spanner(
+    label = "ISS Range",
+    columns = `1-8`:`16+`
+  ) |>
+  gt::tab_spanner(
+    label = "Rowwise Percentages of Total",
+    columns = pct_mild:pct_severe
+  ) |>
   gt::cols_label(
-    reinjured_patients ~ "Reinjured Pts",
-    n_patients ~ "Total Pts",
-    Reinjury ~ "Reinjury Events",
-    injury_events ~ "Injury Events",
+    pct_mild ~ "% Mild",
+    pct_moderate ~ "% Moderate",
+    pct_severe ~ "% Severe"
   ) |>
-  gt::fmt_number(
-    columns = c(reinjured_patients:n_patients, Reinjury:injury_events),
-    drop_trailing_zeros = TRUE
+  gt::fmt_number(columns = `1-8`:Total, drop_trailing_zeros = TRUE) |>
+  gt::fmt_percent(columns = pct_mild:pct_severe, drop_trailing_zeros = TRUE) |>
+  gt::tab_footnote(
+    footnote = case_message,
+    locations = list(
+      gt::cells_column_labels(columns = Total),
+      gt::cells_column_spanners(spanners = "Rowwise Percentages of Total")
+    )
   ) |>
-  gt::fmt_percent(columns = tidyselect::matches("prop")) |>
-  gt::cols_merge_n_pct(col_n = reinjured_patients, col_pct = prop_reinjured) |>
-  gt::cols_merge_n_pct(col_n = Reinjury, col_pct = prop) |>
-  tab_style_hhs(
-    border_cols = 2:tidyselect::last_col(),
-    column_labels = 18,
-    body = 16
-  )
+  tab_style_hhs(border_cols = 2:tidyselect::last_col())
 
-### save the gt reinjury table ----
-gt::gtsave(data = reinjury_gt, filename = "reinjury_gt.png", path = plot_folder)
+##### save the farm/ag gt injury severity gt table to disk ----
+gt::gtsave(
+  data = farm_ag_injury_severity_gt,
+  filename = "farm_ag_injury_severity_gt.png",
+  path = output_folder
+)
+
+### get farm/ag trauma center cases by nature and ISS range ----
+farm_ag_injury_mechanism_iss <- trauma_data_clean |>
+  dplyr::filter(Farm_Ag_Related == "Yes") |>
+  injury_case_count(MECHANISM_1) |>
+  dplyr::filter_out(is.na(MECHANISM_1)) |>
+  dplyr::arrange(desc(n))
+
+#### plot farm/ag injury severity by injury nature ----
+farm_ag_injury_mechanism_iss_plot <- farm_ag_injury_mechanism_iss |>
+  dplyr::slice_head(n = 15) |>
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = reorder(MECHANISM_1, n),
+      y = n,
+      label = n
+    )
+  ) +
+  ggplot2::geom_col(
+    position = ggplot2::position_dodge(width = 0.75),
+    width = 0.6,
+    fill = "cornflowerblue"
+  ) +
+  ggplot2::labs(
+    x = "",
+    y = "",
+    fill = "Mechanism"
+  ) +
+  ggthemes::theme_tufte(base_size = 20, base_family = "Work Sans") +
+  ggplot2::theme(
+    axis.text = ggplot2::element_text(face = "bold")
+  ) +
+  ggplot2::ylim(c(0, 600)) +
+  ggplot2::coord_flip()
+
+## reinjury section was removed for the 2025 report ----
+
+# ### patients that were reinjured
+# reinjury_patient_statistics <- trauma_data_clean |>
+#   reinjury_patient_count(Year, descriptive_stats = TRUE) |>
+#   dplyr::select(-c(9:14))
+
+# ### injuries that occurred as reinjuries
+# reinjury_injury_statistics <- trauma_data_clean |>
+#   reinjury_injury_count(Year, descriptive_stats = TRUE) |>
+#   dplyr::select(-c(8:13))
+
+# ### prepare data for a gt table
+# reinjury_data_prep <- reinjury_patient_statistics |>
+#   dplyr::select(Year, reinjured_patients, n_patients, prop_reinjured) |>
+#   dplyr::left_join(
+#     reinjury_injury_statistics |>
+#       dplyr::select(Year, Reinjury, injury_events = n, prop),
+#     by = dplyr::join_by(Year)
+#   )
+
+# ### reinjury gt table
+# reinjury_gt <- reinjury_data_prep |>
+#   gt::gt() |>
+#   gt::cols_label(
+#     reinjured_patients ~ "Reinjured Pts",
+#     n_patients ~ "Total Pts",
+#     Reinjury ~ "Reinjury Events",
+#     injury_events ~ "Injury Events",
+#   ) |>
+#   gt::fmt_number(
+#     columns = c(reinjured_patients:n_patients, Reinjury:injury_events),
+#     drop_trailing_zeros = TRUE
+#   ) |>
+#   gt::fmt_percent(columns = tidyselect::matches("prop")) |>
+#   gt::cols_merge_n_pct(col_n = reinjured_patients, col_pct = prop_reinjured) |>
+#   gt::cols_merge_n_pct(col_n = Reinjury, col_pct = prop) |>
+#   tab_style_hhs(
+#     border_cols = 2:tidyselect::last_col(),
+#     column_labels = 18,
+#     body = 16
+#   )
+
+# ### save the gt reinjury table
+# gt::gtsave(data = reinjury_gt, filename = "reinjury_gt.png", path = plot_folder)
