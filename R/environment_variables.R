@@ -9,12 +9,14 @@ error_path <- Sys.getenv("error_path")
 # clinical data
 
 # trauma environment variables ----
+trauma_data_path_2018 <- Sys.getenv("trauma_data_2018")
+trauma_data_path_2019 <- Sys.getenv("trauma_data_2019")
+trauma_data_path_2020 <- Sys.getenv("trauma_data_2020")
 trauma_data_path_2021 <- Sys.getenv("trauma_data_2021")
 trauma_data_path_2022 <- Sys.getenv("trauma_data_2022")
 trauma_data_path_2023 <- Sys.getenv("trauma_data_2023")
 trauma_data_path_2024 <- Sys.getenv("trauma_data_2024")
 trauma_data_path_2025 <- Sys.getenv("trauma_data_2025")
-trauma_data_path_2026 <- Sys.getenv("trauma_data_2026")
 
 # ems environment variables ----
 ems_data_path <- Sys.getenv("ems_data_folder")

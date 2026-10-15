@@ -875,17 +875,96 @@ ggplot2::ggsave(
 
 ### transform data to handle work and farm/ag entries ----
 farm_ag_work_data <- trauma_data_clean |>
-  dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE)
+  dplyr::distinct(Year, Unique_Incident_ID, .keep_all = TRUE) |>
+  dplyr::mutate(dplyr::across(
+    c(Farm_Ag_Related, Financial_Work_Related),
+    ~ ifelse(is.na(.), FALSE, ifelse(. == "Yes", TRUE, FALSE))
+  ))
+
+### work related and ag joint probabilities ----
+farm_ag_work_joint_probs <- farm_ag_work_data |>
+  dplyr::summarize(
+    farm_ag = sum(Farm_Ag_Related),
+    work = sum(Financial_Work_Related),
+    farm_ag_work = sum(Farm_Ag_Related & Financial_Work_Related),
+    n = dplyr::n(),
+    .by = Year
+  ) |>
+  janitor::adorn_totals(where = "row") |>
+  dplyr::mutate(
+    farm_ag_pct_work = scales::percent(farm_ag_work / work, accuracy = 0.01),
+    farm_ag_work_pct_farm_ag = scales::percent(
+      farm_ag_work / farm_ag,
+      accuracy = 0.01
+    ),
+    farm_ag_work_total_pct = scales::percent(farm_ag_work / n, accuracy = 0.01),
+    farm_ag_pct = scales::percent(farm_ag / n, accuracy = 0.01),
+    work_pct = scales::percent(work / n, accuracy = 0.01)
+  ) |>
+  dplyr::mutate(
+    dplyr::across(
+      farm_ag:n,
+      ~ prettyNum(x = ., big.mark = ",")
+    )
+  )
+
+#### save the join probabilities of work related and farm/ag to disk ----
+readr::write_csv(
+  x = farm_ag_work_joint_probs,
+  file = paste0(output_folder, "/farm_ag_work_joint_probs.csv")
+)
+
+### make a work related farm/ag joint probs gt table ----
+farm_ag_work_joint_probs_gt <- farm_ag_work_data |>
+  dplyr::summarize(
+    farm_ag = sum(Farm_Ag_Related),
+    farm_ag_work = sum(Farm_Ag_Related & Financial_Work_Related),
+    work = sum(Financial_Work_Related),
+    n = dplyr::n(),
+    .by = Year
+  ) |>
+  janitor::adorn_totals(where = "row") |>
+  dplyr::mutate(
+    farm_ag_pct_work = scales::percent(farm_ag_work / work, accuracy = 0.01),
+    farm_ag_pct = farm_ag / n,
+    work_pct = work / n
+  ) |>
+  gt::gt() |>
+  gt::fmt_number(columns = farm_ag:n, drop_trailing_zeros = TRUE) |>
+  gt::fmt_percent(columns = farm_ag_pct_work:work_pct) |>
+  gt::cols_merge_n_pct(col_n = farm_ag, col_pct = farm_ag_pct) |>
+  gt::cols_merge_n_pct(col_n = work, col_pct = work_pct) |>
+  gt::cols_merge_n_pct(col_n = farm_ag_work, col_pct = farm_ag_pct_work) |>
+  gt::cols_label(
+    farm_ag ~ "Farm/Ag",
+    farm_ag_work ~ "Farm and Work-Related",
+    work ~ "Work-Related",
+    n ~ "N"
+  ) |>
+  tab_style_hhs(border_cols = 2:tidyselect::last_col())
+
+#### save the farm_ag_work_joint_probs_gt object to disk ----
+gt::gtsave(
+  data = farm_ag_work_joint_probs_gt,
+  filename = "farm_ag_work_joint_probs_gt.png",
+  path = output_folder
+)
 
 ### work related and ag annual case counts and percentages ---
 work_related_agricultural <- farm_ag_work_data |>
   dplyr::summarize(
-    work_related = sum(Financial_Work_Related == "Yes", na.rm = TRUE),
-    ag_related = sum(Farm_Ag_Related == "Yes", na.rm = TRUE),
+    work_related = sum(Financial_Work_Related, na.rm = TRUE),
+    ag_related = sum(Farm_Ag_Related, na.rm = TRUE),
     n = dplyr::n(),
     percent_work = scales::percent(work_related / n, accuracy = 0.01),
     percent_ag = scales::percent(ag_related / n, accuracy = 0.01),
     .by = Year
+  ) |>
+  dplyr::mutate(
+    dplyr::across(
+      work_related:n,
+      ~ prettyNum(x = ., big.mark = ",")
+    )
   )
 
 #### save the work related and farm/ag case counts to disk ----
@@ -924,23 +1003,18 @@ farm_ag_injury_severity_gt <- farm_ag_injury_severity |>
     label = "ISS Range",
     columns = `1-8`:`16+`
   ) |>
-  gt::tab_spanner(
-    label = "Rowwise Percentages of Total",
-    columns = pct_mild:pct_severe
-  ) |>
-  gt::cols_label(
-    pct_mild ~ "% Mild",
-    pct_moderate ~ "% Moderate",
-    pct_severe ~ "% Severe"
-  ) |>
   gt::fmt_number(columns = `1-8`:Total, drop_trailing_zeros = TRUE) |>
   gt::fmt_percent(columns = pct_mild:pct_severe, drop_trailing_zeros = TRUE) |>
+  gt::cols_merge_n_pct(col_n = `1-8`, col_pct = pct_mild) |>
+  gt::cols_merge_n_pct(col_n = `9-15`, col_pct = pct_moderate) |>
+  gt::cols_merge_n_pct(col_n = `16+`, col_pct = pct_severe) |>
   gt::tab_footnote(
     footnote = case_message,
-    locations = list(
-      gt::cells_column_labels(columns = Total),
-      gt::cells_column_spanners(spanners = "Rowwise Percentages of Total")
-    )
+    locations = gt::cells_column_labels(columns = Total)
+  ) |>
+  gt::tab_footnote(
+    footnote = "Format is count (rowwise percent).",
+    locations = gt::cells_column_labels(columns = `1-8`:`16+`)
   ) |>
   tab_style_hhs(border_cols = 2:tidyselect::last_col())
 
@@ -948,7 +1022,10 @@ farm_ag_injury_severity_gt <- farm_ag_injury_severity |>
 gt::gtsave(
   data = farm_ag_injury_severity_gt,
   filename = "farm_ag_injury_severity_gt.png",
-  path = output_folder
+  path = output_folder,
+  zoom = 5,
+  vwidth = 800,
+  vheight = 700
 )
 
 ### get farm/ag trauma center cases by nature and ISS range ----
@@ -975,8 +1052,7 @@ farm_ag_injury_mechanism_iss_plot <- farm_ag_injury_mechanism_iss |>
   ) +
   ggplot2::labs(
     x = "",
-    y = "",
-    fill = "Mechanism"
+    y = ""
   ) +
   ggthemes::theme_tufte(base_size = 20, base_family = "Work Sans") +
   ggplot2::theme(
@@ -984,6 +1060,15 @@ farm_ag_injury_mechanism_iss_plot <- farm_ag_injury_mechanism_iss |>
   ) +
   ggplot2::ylim(c(0, 600)) +
   ggplot2::coord_flip()
+
+##### save the farm/ag mechanism plot to disk ----
+ggplot2::ggsave(
+  filename = "farm_ag_injury_mechanism_iss_plot.png",
+  plot = farm_ag_injury_mechanism_iss_plot,
+  path = plot_folder,
+  width = 7 * (16 / 9),
+  height = 7
+)
 
 ## reinjury section was removed for the 2025 report ----
 

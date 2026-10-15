@@ -20,7 +20,7 @@ patient_proportion_message <- "Refers to the proportion of injuries attributed t
 injury_message <- "Injury event refers to the number of unique injury incidents that led to evaluation/treatment at a verified trauma center.  Each injury event could involve multiple cases, and each patient may have one or more injury events in a specified timespan."
 
 # case level
-case_message <- "Counts of cases at trauma centers refers to the number of visits or records recorded by all trauma centers related to a specific context. This count is often higher due to transfers, and one patient or injury event can be reflected multiple times."
+case_message <- "Counts of cases refers to the number of trauma center visits."
 
 ###_____________________________________________________________________________
 # Get palettes ----

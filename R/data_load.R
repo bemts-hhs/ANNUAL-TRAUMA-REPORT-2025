@@ -5,15 +5,32 @@
 ###_____________________________________________________________________________
 
 ### trauma data ----
+trauma_data_2018 <- readr::read_csv(file = trauma_data_path_2018)
+trauma_data_2019 <- readr::read_csv(file = trauma_data_path_2019)
+trauma_data_2020 <- readr::read_csv(file = trauma_data_path_2020)
 trauma_data_2021 <- readr::read_csv(file = trauma_data_path_2021)
 trauma_data_2022 <- readr::read_csv(file = trauma_data_path_2022)
 trauma_data_2023 <- readr::read_csv(file = trauma_data_path_2023)
 trauma_data_2024 <- readr::read_csv(file = trauma_data_path_2024)
 trauma_data_2025 <- readr::read_csv(file = trauma_data_path_2025)
-trauma_data_2026 <- readr::read_csv(file = trauma_data_path_2026)
 
 ## union the trauma data ----
 trauma_data <- dplyr::bind_rows(
+  trauma_data_2018 |>
+    dplyr::mutate(dplyr::across(
+      .cols = tidyselect::matches("_zip$|_fips$"),
+      ~ as.character(.)
+    )),
+  trauma_data_2019 |>
+    dplyr::mutate(dplyr::across(
+      .cols = tidyselect::matches("_zip$|_fips$"),
+      ~ as.character(.)
+    )),
+  trauma_data_2020 |>
+    dplyr::mutate(dplyr::across(
+      .cols = tidyselect::matches("_zip$|_fips$"),
+      ~ as.character(.)
+    )),
   trauma_data_2021 |>
     dplyr::mutate(dplyr::across(
       .cols = tidyselect::matches("_zip$|_fips$"),
@@ -42,7 +59,7 @@ trauma_data <- dplyr::bind_rows(
 )
 
 ## deal with missing values in cause of injury categories ----
-trauma_data_clean <- trauma_data |>
+trauma_data_prep <- trauma_data |>
   dplyr::mutate(
     Age_Group = dplyr::case_when(
       Patient_Age_Years < 5 ~ "0-4",
@@ -227,10 +244,107 @@ trauma_data_clean <- trauma_data |>
   dplyr::relocate(
     tidyselect::all_of(c("Designation", "Urbanicity")),
     .after = County
+  ) |>
+  dplyr::mutate(
+    Level = ifelse(
+      `Current Facility Name` ==
+        "Southeast Iowa Regional Medical Center, West Burlington",
+      "IV",
+      Level
+    )
+  ) |>
+  dplyr::mutate(
+    Level = ifelse(
+      `Current Facility Name` ==
+        "UnityPoint Health - Trinity Regional Medical Center" &
+        ED_Acute_Care_Admission_Date < as.Date("2018-04-01"),
+      "III",
+      ifelse(
+        `Current Facility Name` == "Mahaska Health" &
+          ED_Acute_Care_Admission_Date < as.Date("2018-07-01"),
+        "III",
+        ifelse(
+          `Current Facility Name` == "CHI Health Mercy Council Bluffs" &
+            ED_Acute_Care_Admission_Date < as.Date("2018-10-01"),
+          "IV",
+          ifelse(
+            `Current Facility Name` ==
+              "UnityPoint Health - Marshalltown Hospital" &
+              ED_Acute_Care_Admission_Date < as.Date("2018-12-01"),
+            "III",
+            ifelse(
+              `Current Facility Name` ==
+                "UnityPoint Health - Grinnell Regional Medical Center" &
+                ED_Acute_Care_Admission_Date < as.Date("2019-01-01"),
+              "III",
+              ifelse(
+                `Current Facility Name` ==
+                  "MercyOne North Iowa Medical Center" &
+                  ED_Acute_Care_Admission_Date < as.Date("2020-07-01"),
+                "II",
+                ifelse(
+                  `Current Facility Name` == "Pella Regional Health Center" &
+                    ED_Acute_Care_Admission_Date < as.Date("2020-08-01"),
+                  "III",
+                  ifelse(
+                    `Current Facility Name` ==
+                      "Genesis Medical Center, Davenport" &
+                      ED_Acute_Care_Admission_Date < as.Date("2021-10-01"),
+                    "II",
+                    ifelse(
+                      `Current Facility Name` ==
+                        "Southeast Iowa Regional Medical Center, West Burlington" &
+                        ED_Acute_Care_Admission_Date < as.Date("2021-12-01"),
+                      "III",
+                      ifelse(
+                        `Current Facility Name` ==
+                          "Southeast Iowa Regional Medical Center, West Burlington" &
+                          ED_Acute_Care_Admission_Date >=
+                            as.Date("2021-12-01") &
+                          ED_Acute_Care_Admission_Date < as.Date("2024-12-01"),
+                        "IV",
+                        ifelse(
+                          `Current Facility Name` ==
+                            "Southeast Iowa Regional Medical Center, West Burlington" &
+                            ED_Acute_Care_Admission_Date >=
+                              as.Date("2024-12-01"),
+                          "III",
+                          ifelse(
+                            `Current Facility Name` ==
+                              "Southeast Iowa Regional Medical Center, West Burlington" &
+                              ED_Acute_Care_Admission_Date >=
+                                as.Date("2021-12-01") &
+                              ED_Acute_Care_Admission_Date <
+                                as.Date("2024-12-01"),
+                            "IV",
+                            ifelse(
+                              `Current Facility Name` ==
+                                "UnityPoint Health - St. Luke's Hospital, Sioux CIty" &
+                                ED_Acute_Care_Admission_Date <
+                                  as.Date("2024-10-01"),
+                              "II",
+                              Level
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
   )
 
+## main file for analyses ----
+trauma_data_clean <- trauma_data_prep |>
+  dplyr::filter(Year >= 2021)
+
 ## get the trauma data for the year of interest ----
-trauma_2025 <- trauma_data_clean |> dplyr::filter(Year == 2025)
+trauma_2025 <- trauma_data_prep |> dplyr::filter(Year == 2025)
 
 ## check the trauma data ----
 dplyr::glimpse(trauma_2025)
