@@ -16,9 +16,8 @@ trauma_facility_count_by_level_years <- trauma_data_prep |>
     )
   ) |>
   dplyr::filter_out(is.na(Level)) |>
-  dplyr::distinct(Year, `Current Facility Name`, .keep_all = TRUE) |>
   dplyr::select(Year, `Current Facility Name`, Level) |>
-  dplyr::arrange(`Current Facility Name`) |>
+  dplyr::distinct(Year, `Current Facility Name`, .keep_all = TRUE) |>
   dplyr::count(Year, Level) |>
   tidyr::complete(Year, Level, fill = list(n = 0))
 
@@ -302,7 +301,7 @@ gt::gtsave(
 ## top causes of mortality in Iowa ----
 
 ### top 5 causes of death in Iowa
-top_5_causes_iowa_plot <- death_cdc_wonder_iowa_all_2024 |>
+top_5_causes_iowa_plot <- death_cdc_wonder_iowa_all_2020_2024_aggregate |>
   dplyr::slice_max(Deaths, n = 5) |>
   dplyr::mutate(
     name = gsub(
@@ -367,21 +366,22 @@ top_5_causes_iowa_plot <- death_cdc_wonder_iowa_all_2024 |>
         x = death_cdc_wonder_iowa_all_2023$`15 Leading Causes of Death`,
         ignore.case = TRUE
       ),
-      300,
+      -300,
       10
     ),
     family = "Work Sans",
-    size = 15,
+    size = 14,
     fontface = "bold",
     seed = 10232015,
-    segment.color = "transparent"
+    segment.color = "transparent",
+    color = c("white", rep("black", 4))
   ) +
   ggplot2::annotate(
     geom = "segment",
     x = stringr::str_wrap("Accident", width = 10),
     xend = stringr::str_wrap("Accident", width = 10),
-    y = 3500,
-    yend = 2700,
+    y = 14500,
+    yend = 13500,
     arrow = ggplot2::arrow(type = "closed")
   ) +
   paletteer::scale_fill_paletteer_c(
@@ -394,7 +394,7 @@ top_5_causes_iowa_plot <- death_cdc_wonder_iowa_all_2024 |>
     base_size = 30,
     axis.text.y = ggplot2::element_blank(),
     legend_position = "inside",
-    legend.position.inside = c(0.75, 0.75)
+    legend.position.inside = c(0.85, 0.75)
   )
 
 #### save the top 10 causes of death in Iowa plot ----

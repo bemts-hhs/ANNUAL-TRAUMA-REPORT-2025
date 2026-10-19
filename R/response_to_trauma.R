@@ -44,13 +44,28 @@ trauma_case_level_increase <- trauma_data_clean |>
   dplyr::filter(Year >= 2024)
 
 # count of incidents by definitive care facility level ----
-trauma_cases_by_def_care_level <- trauma_2025 |>
+trauma_cases_by_def_care_level_2025 <- trauma_2025 |>
   dplyr::filter(Level %in% c("I", "II", "III", "IV"), Receiving == "Yes") |>
   injury_case_count(Level) |>
   dplyr::mutate(
     n_label = prettyNum(n, big.mark = ","),
     percent = n / sum(n),
     percent_label = traumar::pretty_percent(percent, n_decimal = 1)
+  )
+
+# count of incidents by definitive care facility level over the years ----
+trauma_cases_by_def_care_level_years <- trauma_data_clean |>
+  dplyr::filter(Level %in% c("I", "II", "III", "IV"), Receiving == "Yes") |>
+  injury_case_count(Year, Level, descriptive_stats = TRUE, group = Level) |>
+  dplyr::arrange(Level) |>
+  dplyr::mutate(
+    overall_change = n - dplyr::lag(x = n, n = 4),
+    overall_pct_change = overall_change / dplyr::lag(x = n, n = 4),
+    overall_pct_change_label = scales::percent(
+      overall_pct_change,
+      accuracy = 0.01
+    ),
+    .by = Level
   )
 
 # plot the count of incidents by definitive care facility level ----
@@ -134,50 +149,35 @@ transport_mode_to_facility <- trauma_data_clean |>
       )
     )
   ) |>
-  injury_case_count(Year, Transport_To_Your_Facility_By) |>
-  dplyr::arrange(Year, desc(n)) |>
-  dplyr::mutate(
-    Transport_To_Your_Facility_By = stringr::str_wrap(
-      Transport_To_Your_Facility_By,
-      whitespace_only = FALSE,
-      width = 20
-    )
-  ) |>
+  injury_case_count(Admission_Quarter, Transport_To_Your_Facility_By) |>
+  dplyr::arrange(Admission_Quarter, desc(n)) |>
   dplyr::mutate(
     percent = n / sum(n),
-    .by = Year
+    .by = Admission_Quarter
   )
 
 # transport mode to facility plot ----
 transport_mode_to_facility_plot <- transport_mode_to_facility |>
   dplyr::filter_out(grepl(
-    pattern = "ambulette",
+    pattern = "ambulette|other|missing",
     x = Transport_To_Your_Facility_By,
     ignore.case = TRUE
   )) |>
   ggplot2::ggplot(
     ggplot2::aes(
-      x = Year,
+      x = Admission_Quarter,
       y = n,
-      fill = Transport_To_Your_Facility_By,
       label = traumar::pretty_number(x = n, digits = 2)
     )
   ) +
-  ggplot2::geom_col(
-    position = "dodge",
-    fill = "thistle2"
+  ggplot2::geom_line(
+    color = "thistle2",
+    linewidth = 1.25,
+    linejoin = "round",
+    lineend = "round"
   ) +
-  ggrepel::geom_text_repel(
-    ggplot2::aes(y = ifelse(n < 250, n, 0)),
-    family = "Work Sans",
-    size = 8,
-    color = "black",
-    angle = 90,
-    position = "dodge",
-    direction = "y",
-    seed = 10232015
-  ) +
-  ggplot2::guides(fill = "none") +
+  ggplot2::geom_point(color = "slategray", size = 2) +
+  ggplot2::guides(color = "none") +
   ggplot2::labs(
     x = "",
     y = ""
@@ -186,8 +186,12 @@ transport_mode_to_facility_plot <- transport_mode_to_facility |>
     base_size = 18,
     facets = TRUE
   ) +
+  ggplot2::scale_y_continuous(labels = function(x) {
+    traumar::pretty_number(x = x, digits = 2)
+  }) +
+  ggplot2::scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m") +
   ggplot2::theme(
-    axis.text.y = ggplot2::element_blank()
+    axis.text.x = ggplot2::element_text(angle = 90)
   ) +
   ggplot2::facet_wrap(~Transport_To_Your_Facility_By, scales = "free_y")
 
@@ -196,8 +200,8 @@ ggplot2::ggsave(
   filename = "transport_mode_to_facility_plot.png",
   plot = transport_mode_to_facility_plot,
   path = plot_folder,
-  height = 6,
-  width = 6 * (16 / 9)
+  height = 7,
+  width = 7 * (16 / 9)
 )
 
 # transport mode to facility among receiving facilities df ----
@@ -249,7 +253,6 @@ transport_mode_to_facility_receiving <- trauma_2025 |>
       traumar::pretty_percent(percent)
     )
   )
-
 
 # transport mode to facility among receiving facilities plot ----
 transport_mode_to_facility_receiving_plot <- transport_mode_to_facility_receiving |>
@@ -358,7 +361,7 @@ case_count_iss_range_plot <- case_count_iss_range_df |>
     facets = TRUE,
     axis.text.x = ggplot2::element_blank()
   ) +
-  ggthemes::scale_fill_colorblind()
+  paletteer::scale_fill_paletteer_d(palette = "colorblindr::OkabeIto")
 
 # save the iss range count by facility level plot ----
 ggplot2::ggsave(
@@ -432,7 +435,7 @@ case_count_iss_range_receiving_plot <- case_count_iss_range_receiving_df |>
     facets = TRUE,
     axis.text.x = ggplot2::element_blank()
   ) +
-  ggthemes::scale_fill_colorblind()
+  paletteer::scale_fill_paletteer_d(palette = "colorblindr::OkabeIto")
 
 # save the plot ----
 ggplot2::ggsave(
@@ -467,7 +470,7 @@ cause_of_injury_freq_plot <- cause_of_injury_freq |>
     color = "black",
     family = "Work Sans",
     fontface = "bold",
-    angle = dplyr::if_else(cause_of_injury_freq$n < 600, 90, 0)
+    angle = dplyr::if_else(cause_of_injury_freq$n < 700, 90, 0)
   ) +
   ggplot2::labs(
     x = "",
@@ -477,12 +480,12 @@ cause_of_injury_freq_plot <- cause_of_injury_freq |>
   traumar::theme_cleaner(
     base_size = 30,
     legend_position = "inside",
-    legend.position.inside = c(.75, .3)
+    legend.position.inside = c(.8, .3)
   ) +
   ggplot2::theme(legend.title = ggplot2::element_blank()) +
   paletteer::scale_fill_paletteer_d(palette = "colorblindr::OkabeIto_black") +
   ggplot2::scale_y_continuous(
-    labels = function(x) traumar::pretty_number(x, n_decimal = 1)
+    labels = function(x) traumar::pretty_number(x, digits = 1)
   )
 
 # save the cause of injury by level plot ----
@@ -557,7 +560,6 @@ ggplot2::ggsave(
   height = 7,
   width = 7 * (16 / 9)
 )
-
 
 # transfers out by trauma level df ----
 transfers_out_by_trauma_lvl <- trauma_2025 |>
@@ -687,7 +689,7 @@ transfer_delays_transfer_out_plot <- transfer_delays_transfer_out_main |>
   ggplot2::labs(
     caption = glue::glue(
       "- There were { prettyNum(missing_transfer_delays, big.mark = ",
-      ") }, cases that were not delayed or were\nmissing a category, and { other_transfer_delays } marked as 'other.'"
+      ") } cases that were not delayed or were\nmissing a category, and { other_transfer_delays } marked as 'other.'"
     ),
     x = "",
     y = ""
@@ -705,9 +707,102 @@ ggplot2::ggsave(
   path = plot_folder
 )
 
+# trauma team activations ----
+tta_counts <- trauma_data_clean |>
+  injury_case_count(
+    Year,
+    Trauma_Team_Activated,
+    descriptive_stats = TRUE,
+    group = Trauma_Team_Activated
+  ) |>
+  dplyr::arrange(Trauma_Team_Activated) |>
+  dplyr::mutate(
+    pct_total = n / sum(n),
+    .by = Year,
+    .after = n
+  ) |>
+  dplyr::mutate(
+    overall_change = n - dplyr::lag(x = n, n = 4),
+    overall_pct_change = overall_change / dplyr::lag(x = n, n = 4),
+    overall_pct_change_label = scales::percent(
+      x = overall_pct_change,
+      accuracy = 0.01
+    ),
+    .by = Trauma_Team_Activated
+  )
+
+# TTAs among verification levels ----
+tta_levels_counts <- trauma_data_clean |>
+  dplyr::mutate(
+    Trauma_Team_Activation_Level = dplyr::case_when(
+      is.na(Trauma_Team_Activation_Level) |
+        grepl(
+          pattern = "not\\s|non-|consultation|level 3",
+          x = Trauma_Team_Activation_Level,
+          ignore.case = TRUE
+        ) ~
+        "Not Activated",
+      TRUE ~ Trauma_Team_Activation_Level
+    )
+  ) |>
+  injury_case_count(
+    Year,
+    Trauma_Team_Activation_Level,
+    descriptive_stats = TRUE,
+    group = Trauma_Team_Activation_Level
+  ) |>
+  dplyr::arrange(Trauma_Team_Activation_Level) |>
+  dplyr::mutate(
+    overall_change = n - dplyr::lag(x = n, n = 4),
+    overall_pct_change = overall_change / dplyr::lag(x = n, n = 4),
+    overall_pct_change_label = scales::percent(
+      x = overall_pct_change,
+      accuracy = 0.01
+    ),
+    .by = Trauma_Team_Activation_Level
+  )
+
+# acute transfers ----
+acute_transfer_counts <- trauma_data_clean |>
+  dplyr::mutate(
+    Acute_Transfer_Out = ifelse(
+      is.na(Acute_Transfer_Out),
+      "No",
+      Acute_Transfer_Out
+    )
+  ) |>
+  injury_case_count(
+    Year,
+    Acute_Transfer_Out,
+    descriptive_stats = TRUE,
+    group = Acute_Transfer_Out
+  ) |>
+  dplyr::arrange(Acute_Transfer_Out) |>
+  dplyr::mutate(
+    overall_change = n - dplyr::lag(x = n, n = 4),
+    overall_pct_change = overall_change / dplyr::lag(x = n, n = 4),
+    overall_pct_change_label = scales::percent(
+      x = overall_pct_change,
+      accuracy = 0.01
+    ),
+    .by = Acute_Transfer_Out
+  )
+
 # median ED stay prior to transfer by ISS range df ----
 # prep data ----
 prep_trauma_data <- trauma_data_clean |>
+  dplyr::mutate(
+    Trauma_Team_Activation_Level = dplyr::case_when(
+      is.na(Trauma_Team_Activation_Level) |
+        grepl(
+          pattern = "not\\s|non-|consultation|level 3",
+          x = Trauma_Team_Activation_Level,
+          ignore.case = TRUE
+        ) ~
+        "Not Activated",
+      TRUE ~ Trauma_Team_Activation_Level
+    )
+  ) |>
   dplyr::filter(
     Acute_Transfer_Out == "Yes",
     !is.na(Trauma_Team_Activated),
@@ -966,7 +1061,7 @@ true_median_ed_stay_diff_gt <- true_median_ed_stay_diff |>
     .after = n_obs_not_activated
   ) |>
   dplyr::select(c(Year:upper_ci, n_obs)) |>
-  dplyr::filter(Year >= 2022) |>
+  dplyr::filter(Year >= 2023) |>
   tidyr::pivot_wider(
     id_cols = ISS_Range,
     names_from = Year,
@@ -976,15 +1071,6 @@ true_median_ed_stay_diff_gt <- true_median_ed_stay_diff |>
   gt::fmt_number(
     columns = tidyselect::matches("stat|_ci|n_obs"),
     drop_trailing_zeros = TRUE
-  ) |>
-  gt::cols_merge(
-    columns = c(
-      stat_2022,
-      lower_ci_2022,
-      upper_ci_2022,
-      n_obs_2022
-    ),
-    pattern = "{1} (CI: {2}, {3}) n={4}"
   ) |>
   gt::cols_merge(
     columns = c(
@@ -1001,6 +1087,15 @@ true_median_ed_stay_diff_gt <- true_median_ed_stay_diff |>
       lower_ci_2024,
       upper_ci_2024,
       n_obs_2024
+    ),
+    pattern = "{1} (CI: {2}, {3}) n={4}"
+  ) |>
+  gt::cols_merge(
+    columns = c(
+      stat_2025,
+      lower_ci_2025,
+      upper_ci_2025,
+      n_obs_2025
     ),
     pattern = "{1} (CI: {2}, {3}) n={4}"
   ) |>
@@ -1022,7 +1117,7 @@ true_median_ed_stay_diff_gt <- true_median_ed_stay_diff |>
 gt::gtsave(
   filename = "true_median_ed_stay_diff_gt.png",
   data = true_median_ed_stay_diff_gt,
-  path = plot_folder
+  path = output_folder
 )
 
 # create intermediate objects for the plot ----
@@ -1036,6 +1131,9 @@ raw_median_times_pivot <- median_diff_ed_los |>
     names_to = "var",
     values_to = "val"
   )
+
+# overall median difference in lengths of stay during the study period ----
+overall_median_ed_los_difference <- median(median_diff_ed_los$raw_diff)
 
 # plot the change in the median ED LOS prior to transfer over time ----
 # as a combination plot
@@ -1065,7 +1163,7 @@ longitudinal_median_ed_los_plot <-
     data = raw_median_times_pivot,
     ggplot2::aes(
       x = Year,
-      y = ifelse(Year %in% c(2020, 2024), val, NA),
+      y = ifelse(Year %in% c(2021, 2025), val, NA),
       label = val
     ),
     color = "black",
@@ -1092,64 +1190,3 @@ ggplot2::ggsave(
   width = 7 * (16 / 9),
   path = plot_folder
 )
-
-# trauma team activations ----
-tta_counts <- trauma_data_clean |>
-  injury_case_count(Year, Trauma_Team_Activated) |>
-  dplyr::arrange(Trauma_Team_Activated) |>
-  dplyr::mutate(
-    change = n - dplyr::lag(n),
-    pct_change = change / dplyr::lag(n),
-    .by = Trauma_Team_Activated
-  ) |>
-  dplyr::mutate(
-    pct_total = n / sum(n),
-    .by = Year,
-    .after = n
-  ) |>
-  tidyr::pivot_wider(
-    id_cols = Year,
-    names_from = Trauma_Team_Activated,
-    values_from = n:pct_change
-  )
-
-# TTAs among verification levels ----
-tta_levels_counts <- trauma_data_clean |>
-  dplyr::mutate(
-    Trauma_Team_Activation_Level = dplyr::case_when(
-      is.na(Trauma_Team_Activation_Level) |
-        grepl(
-          pattern = "not\\s|non-|consultation|level 3",
-          x = Trauma_Team_Activation_Level,
-          ignore.case = TRUE
-        ) ~
-        "Not Activated",
-      TRUE ~ Trauma_Team_Activation_Level
-    )
-  ) |>
-  injury_case_count(Year, Trauma_Team_Activation_Level) |>
-  tidyr::pivot_wider(
-    id_cols = Year,
-    names_from = Trauma_Team_Activation_Level,
-    values_from = n
-  )
-
-# acute transfers ----
-acute_transfer_counts <- trauma_data_clean |>
-  dplyr::mutate(
-    Acute_Transfer_Out = ifelse(
-      is.na(Acute_Transfer_Out),
-      "No",
-      Acute_Transfer_Out
-    )
-  ) |>
-  injury_case_count(Year, Acute_Transfer_Out) |>
-  tidyr::pivot_wider(
-    id_cols = Year,
-    names_from = Acute_Transfer_Out,
-    values_from = n
-  ) |>
-  dplyr::mutate(
-    total = No + Yes,
-    pct_acute_transfer = Yes / total
-  )
