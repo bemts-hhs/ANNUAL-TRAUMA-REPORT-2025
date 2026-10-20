@@ -28,34 +28,31 @@ iowa_deaths_intentionality_plot <- iowa_deaths_intentionality |>
   )) +
   ggplot2::geom_line(
     alpha = 0.5,
-    linewidth = 3,
+    linewidth = 1.5,
     lineend = "round",
     linejoin = "round"
-  ) +
-  ggrepel::geom_text_repel(
-    segment.color = NA,
-    family = "Work Sans",
-    size = 8,
-    color = "black",
-    direction = "both"
   ) +
   ggplot2::labs(
     x = "",
     y = "",
     title = "Iowa Trauma Deaths by Intentionality",
     subtitle = "Source: Iowa Death Certificate Data | 2021-2025",
-    color = "Intentionality",
-    caption = "Note: Order of color legend follows descending order of lines.\n'*' indicates a masked value < 6 to protect confidentiality."
+    color = "Intentionality"
   ) +
   ggplot2::scale_y_continuous(
-    labels = function(x) traumar::pretty_number(x)
+    labels = function(x) traumar::pretty_number(x),
+    limits = c(
+      0,
+      max(iowa_deaths_intentionality$Deaths) +
+        (max(iowa_deaths_intentionality$Deaths) * 0.1)
+    )
   ) +
   paletteer::scale_color_paletteer_d(
     palette = "colorblindr::OkabeIto",
     direction = 1
   ) +
   traumar::theme_cleaner(
-    base_size = 15,
+    base_size = 18,
     title_text_size = 20,
     subtitle_text_size = 18,
     vjust_title = 1.75,
@@ -63,25 +60,25 @@ iowa_deaths_intentionality_plot <- iowa_deaths_intentionality |>
     legend_position = "right"
   )
 
-# save the Iowa trauma deaths by intentionality plot
+# save the Iowa trauma deaths by intentionality plot ----
 ggplot2::ggsave(
   filename = "iowa_deaths_intentionality_plot.png",
   plot = iowa_deaths_intentionality_plot,
   path = plot_folder,
-  height = 6,
-  width = 8
+  height = 6.5,
+  width = 6.5 * (16 / 9)
 )
 
 # get fire/burn and drowning counts for caption in the following plot ----
-fire_burn_drown <- iowa_deaths_cause |>
+fire_burn_drown <- iowa_unintentional_deaths_cause |>
   dplyr::filter(
     Year == 2025,
     grepl(pattern = "fire|drown", x = Cause, ignore.case = TRUE)
   ) |>
   dplyr::select(-Year)
 
-# unintentional trauma deaths by cause in Iowa plot
-iowa_deaths_cause_plot <- iowa_deaths_cause |>
+# unintentional trauma deaths by cause in Iowa plot ----
+iowa_deaths_cause_plot <- iowa_unintentional_deaths_cause |>
   dplyr::mutate(
     Cause = stringr::str_remove_all(Cause, pattern = "^\\d{2}-"),
     labels = dplyr::if_else(Year %in% c(2021, 2025), Deaths, NA),
@@ -101,17 +98,9 @@ iowa_deaths_cause_plot <- iowa_deaths_cause |>
   )) +
   ggplot2::geom_line(
     alpha = 0.5,
-    linewidth = 3,
+    linewidth = 1.5,
     lineend = "round",
     linejoin = "round"
-  ) +
-  ggrepel::geom_text_repel(
-    segment.color = NA,
-    family = "Work Sans",
-    size = 8,
-    color = "black",
-    direction = "both",
-    seed = 10232015
   ) +
   ggplot2::labs(
     x = "",
@@ -120,18 +109,23 @@ iowa_deaths_cause_plot <- iowa_deaths_cause |>
     subtitle = "Source: Iowa Death Certificate Data | 2021-2025",
     color = "Cause of Death",
     caption = glue::glue(
-      "Note: Order of color legend follows descending order of lines. || 2025 Fire/burn = {fire_burn_drown[1,2]}, 2025 Drowning = {fire_burn_drown[2,2]}"
+      "2025 Fire/burn = {fire_burn_drown[1,2]}, 2025 Drowning = {fire_burn_drown[2,2]}"
     )
   ) +
   ggplot2::scale_y_continuous(
-    labels = function(x) traumar::pretty_number(x)
+    labels = function(x) traumar::pretty_number(x),
+    limits = c(
+      0,
+      max(iowa_unintentional_deaths_cause$Deaths) +
+        (max(iowa_unintentional_deaths_cause$Deaths) * 0.1)
+    )
   ) +
   paletteer::scale_color_paletteer_d(
     palette = "colorblindr::OkabeIto",
     direction = 1
   ) +
   traumar::theme_cleaner(
-    base_size = 15,
+    base_size = 18,
     title_text_size = 20,
     subtitle_text_size = 18,
     vjust_title = 1.75,
@@ -140,16 +134,16 @@ iowa_deaths_cause_plot <- iowa_deaths_cause |>
     axis.text.y = ggplot2::element_blank()
   )
 
-# save the iowa_deaths_cause_plot
+# save the iowa_deaths_cause_plot ----
 ggplot2::ggsave(
-  filename = "iowa_deaths_cause_plot.png",
+  filename = "iowa_unintentional_deaths_cause_plot.png",
   plot = iowa_deaths_cause_plot,
   path = plot_folder,
-  height = 6,
-  width = 8
+  height = 6.5,
+  width = 6.5 * (16 / 9)
 )
 
-# trauma suicides by cause plot
+# trauma suicides by cause plot ----
 iowa_suicides_cause_plot <- iowa_suicides_cause |>
   dplyr::mutate(
     Cause = stringr::str_remove_all(Cause, pattern = "^\\d{2}-")
@@ -163,34 +157,30 @@ iowa_suicides_cause_plot <- iowa_suicides_cause |>
   )) +
   ggplot2::geom_line(
     alpha = 0.5,
-    linewidth = 3,
+    linewidth = 1.5,
     lineend = "round",
     linejoin = "round"
-  ) +
-  ggrepel::geom_text_repel(
-    segment.color = NA,
-    family = "Work Sans",
-    size = 8,
-    color = "black",
-    direction = "x"
   ) +
   ggplot2::labs(
     x = "",
     y = "",
     title = "Iowa Trauma Suicide Deaths by Cause",
     subtitle = "Source: Iowa Death Certificate Data | 2021-2025",
-    color = "Cause",
-    caption = "Note: Order of color legend follows descending order of lines."
+    color = "Cause"
   ) +
   ggplot2::scale_y_continuous(
-    labels = function(x) traumar::pretty_number(x)
+    labels = function(x) traumar::pretty_number(x),
+    limits = c(
+      0,
+      max(iowa_suicides_cause$Deaths) + (max(iowa_suicides_cause$Deaths) * 0.1)
+    )
   ) +
   paletteer::scale_color_paletteer_d(
     palette = "colorblindr::OkabeIto",
     direction = 1
   ) +
   traumar::theme_cleaner(
-    base_size = 15,
+    base_size = 18,
     title_text_size = 20,
     subtitle_text_size = 18,
     vjust_title = 1.75,
@@ -198,17 +188,16 @@ iowa_suicides_cause_plot <- iowa_suicides_cause |>
     legend_position = "right"
   )
 
-# save trauma suicides by cause plot
-
+# save trauma suicides by cause plot ----
 ggplot2::ggsave(
   filename = "iowa_suicides_cause_plot.png",
   plot = iowa_suicides_cause_plot,
   path = plot_folder,
-  height = 6,
-  width = 8
+  height = 6.5,
+  width = 6.5 * (16 / 9)
 )
 
-# trends in causes of death with 5-year avg
+# trends in causes of death with 5-year avg ----
 iowa_death_trends_cause_tbl <- iowa_death_trends_cause |>
   dplyr::arrange(Year, desc(Deaths)) |>
   dplyr::mutate(Cause = stringr::str_remove_all(Cause, pattern = "^\\d{2}-")) |>
@@ -234,10 +223,6 @@ iowa_death_trends_cause_tbl <- iowa_death_trends_cause |>
   dplyr::arrange(desc(`Five Year Avg.`)) |>
   dplyr::select(Cause, `2025`:last_col()) |>
   gt::gt() |>
-  gt::tab_header(
-    title = "Iowa Trends in Causes of Traumatic Death",
-    subtitle = "Source: Iowa Death Certificate Data | 2021-2025"
-  ) |>
   gt::cols_label(`2025` = "# Deaths 2025") |>
   gt::fmt_number(
     columns = c(`2025`, `Five Year Avg.`),
@@ -250,10 +235,6 @@ iowa_death_trends_cause_tbl <- iowa_death_trends_cause |>
   gt::tab_footnote(
     footnote = "Bars under cause of death track with count of deaths in 2025.",
     locations = gt::cells_column_labels(columns = Cause)
-  ) |>
-  gt::tab_footnote(
-    footnote = "Five year avg. calculated from counts of each cause of death from 2021 through 2025.",
-    locations = gt::cells_column_labels(columns = `Five Year Avg.`)
   ) |>
   gt::opt_footnote_marks(marks = "standard") |>
   gtExtras::gt_plt_dot(
@@ -270,15 +251,16 @@ iowa_death_trends_cause_tbl <- iowa_death_trends_cause |>
   ) |>
   tab_style_hhs(border_cols = `2025`:`2021-2025 Trend`)
 
-# save the table
+# save the table ----
 gt::gtsave(
   data = iowa_death_trends_cause_tbl,
   filename = "iowa_death_trends_cause_tbl.png",
-  path = plot_folder
+  path = output_folder
 )
 
-# trends in unintentional and suicide poisonings
+# trends in unintentional and suicide poisonings ----
 iowa_death_poisoning_plot <- iowa_death_poisoning |>
+  dplyr::mutate(Year = as.numeric(Year)) |>
   dplyr::arrange(Cause, Year) |>
   dplyr::mutate(
     labels = dplyr::if_else(
@@ -344,14 +326,16 @@ iowa_death_poisoning_plot <- iowa_death_poisoning |>
     subtitle_text_size = 18,
     vjust_title = 1.75,
     vjust_subtitle = 1
+  ) +
+  ggplot2::theme(
+    axis.text.y = ggplot2::element_blank()
   )
 
-# save the poisoning trends plot
-
+# save the poisoning trends plot ----
 ggplot2::ggsave(
   filename = "iowa_death_poisoning_plot.png",
   plot = iowa_death_poisoning_plot,
   path = plot_folder,
-  height = 6,
-  width = 8
+  height = 6.5,
+  width = 6.5 * (16 / 9)
 )

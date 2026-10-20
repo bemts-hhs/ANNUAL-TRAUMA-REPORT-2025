@@ -589,7 +589,7 @@ iowa_deaths_intentionality <- readxl::read_excel(
   )
 
 # for the Iowa unintentional trauma deaths by cause plot ----
-iowa_deaths_cause <- readxl::read_excel(
+iowa_unintentional_deaths_cause <- readxl::read_excel(
   path = p16_1_path
 ) |>
   dplyr::rename(
@@ -663,7 +663,7 @@ iowa_death_suicide_poisoning <- readxl::read_excel(
     values_to = "Deaths"
   )
 
-#union the poisoning tables ----
+# union the poisoning tables ----
 iowa_death_poisoning <- dplyr::bind_rows(
   iowa_death_unintentional_poisoning,
   iowa_death_suicide_poisoning
