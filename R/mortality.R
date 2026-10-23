@@ -27,16 +27,18 @@ iowa_deaths_intentionality_plot <- iowa_deaths_intentionality |>
     group = Intentionality
   )) +
   ggplot2::geom_line(
-    alpha = 0.5,
-    linewidth = 1.5,
+    alpha = 0.8,
+    linewidth = 1.25,
     lineend = "round",
     linejoin = "round"
+  ) +
+  ggplot2::geom_point(
+    alpha = 0.8,
+    size = 3
   ) +
   ggplot2::labs(
     x = "",
     y = "",
-    title = "Iowa Trauma Deaths by Intentionality",
-    subtitle = "Source: Iowa Death Certificate Data | 2021-2025",
     color = "Intentionality"
   ) +
   ggplot2::scale_y_continuous(
@@ -52,11 +54,7 @@ iowa_deaths_intentionality_plot <- iowa_deaths_intentionality |>
     direction = 1
   ) +
   traumar::theme_cleaner(
-    base_size = 18,
-    title_text_size = 20,
-    subtitle_text_size = 18,
-    vjust_title = 1.75,
-    vjust_subtitle = 1,
+    base_size = 25,
     legend_position = "right"
   )
 
@@ -97,20 +95,19 @@ iowa_deaths_cause_plot <- iowa_unintentional_deaths_cause |>
     group = Cause
   )) +
   ggplot2::geom_line(
-    alpha = 0.5,
-    linewidth = 1.5,
+    alpha = 0.8,
+    linewidth = 1.25,
     lineend = "round",
     linejoin = "round"
+  ) +
+  ggplot2::geom_point(
+    alpha = 0.8,
+    size = 3
   ) +
   ggplot2::labs(
     x = "",
     y = "",
-    title = "Iowa Unintentional Trauma Deaths by Cause",
-    subtitle = "Source: Iowa Death Certificate Data | 2021-2025",
-    color = "Cause of Death",
-    caption = glue::glue(
-      "2025 Fire/burn = {fire_burn_drown[1,2]}, 2025 Drowning = {fire_burn_drown[2,2]}"
-    )
+    color = "Cause of Death"
   ) +
   ggplot2::scale_y_continuous(
     labels = function(x) traumar::pretty_number(x),
@@ -122,16 +119,14 @@ iowa_deaths_cause_plot <- iowa_unintentional_deaths_cause |>
   ) +
   paletteer::scale_color_paletteer_d(
     palette = "colorblindr::OkabeIto",
-    direction = 1
+    direction = -1
   ) +
   traumar::theme_cleaner(
-    base_size = 18,
-    title_text_size = 20,
-    subtitle_text_size = 18,
-    vjust_title = 1.75,
-    vjust_subtitle = 1,
-    legend_position = "right",
-    axis.text.y = ggplot2::element_blank()
+    base_size = 25,
+    legend_position = "right"
+  ) +
+  ggplot2::theme(
+    axis.text = ggplot2::element_text(size = 25)
   )
 
 # save the iowa_deaths_cause_plot ----
@@ -236,6 +231,10 @@ iowa_death_trends_cause_tbl <- iowa_death_trends_cause |>
     footnote = "Bars under cause of death track with count of deaths in 2025.",
     locations = gt::cells_column_labels(columns = Cause)
   ) |>
+  gt::tab_footnote(
+    footnote = "blue = lowest value, green = highest value.",
+    locations = gt::cells_column_labels(columns = `2021-2025 Trend`)
+  ) |>
   gt::opt_footnote_marks(marks = "standard") |>
   gtExtras::gt_plt_dot(
     column = `2025`,
@@ -246,8 +245,9 @@ iowa_death_trends_cause_tbl <- iowa_death_trends_cause |>
     column = `2021-2025 Trend`,
     type = "shaded",
     same_limit = FALSE,
-    label = TRUE,
-    fig_dim = c(8, 30)
+    label = FALSE,
+    fig_dim = c(10, 35),
+    palette = c("black", "black", "blue", "green", "lightgrey")
   ) |>
   tab_style_hhs(border_cols = `2025`:`2021-2025 Trend`)
 

@@ -69,7 +69,7 @@ trauma_cases_by_def_care_level_years <- trauma_data_clean |>
   )
 
 # plot the count of incidents by definitive care facility level ----
-trauma_cases_by_def_care_level_plot <- trauma_cases_by_def_care_level |>
+trauma_cases_by_def_care_level_plot <- trauma_cases_by_def_care_level_2025 |>
   ggplot2::ggplot(ggplot2::aes(
     x = reorder(Level, n),
     y = n,
@@ -96,7 +96,7 @@ trauma_cases_by_def_care_level_plot <- trauma_cases_by_def_care_level |>
   ) +
   ggplot2::labs(
     x = "",
-    y = "Count"
+    y = ""
   ) +
   ggplot2::coord_flip() +
   ggplot2::guides(color = "none") +
@@ -786,6 +786,149 @@ acute_transfer_counts <- trauma_data_clean |>
       accuracy = 0.01
     ),
     .by = Acute_Transfer_Out
+  )
+
+###_____________________________________________________________________________
+# EMS Reporting - Utilize the Elite report Annual report - Main Report (Bulk) ----
+# Using the bulk report is much faster and can easily be referenced again by
+# download.
+###_____________________________________________________________________________
+
+###_____________________________________________________________________________
+# Calculate the Executive Summary EMS data ----
+###_____________________________________________________________________________
+
+# Get unique count of incidents ----
+ems_incidents <- ems_data_clean |>
+  dplyr::filter(Scene_First_EMS_Unit_On_Scene == "Yes") |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, name = "Incidents")
+
+# get a unique count of total resources used ----
+ems_runs <- ems_data_clean |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, name = "Runs")
+
+# bind columns of the incidents and runs table ----
+ems_incidents_runs <- ems_incidents |>
+  dplyr::left_join(ems_runs, by = "Year") |>
+  dplyr::mutate(incident_run_ratio = Runs / Incidents)
+
+# Get All Transports count by filtering Disposition Incident Patient Disposition
+# by only values in disposition_incident_patient_disposition ----
+
+# transport incidents ----
+transport_incidents <- ems_data_clean |>
+  dplyr::filter(
+    Patient_Transported == TRUE,
+    Scene_First_EMS_Unit_On_Scene == "Yes"
+  ) |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, Patient_Transported) |>
+  dplyr::left_join(
+    ems_incidents |>
+      dplyr::select(Year, Incidents),
+    by = "Year"
+  ) |>
+  dplyr::mutate(
+    percent_incidents = n / Incidents
+  )
+
+# transport runs ----
+transport_runs <- ems_data_clean |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, Patient_Transported) |>
+  dplyr::filter(Patient_Transported == TRUE) |>
+  dplyr::left_join(
+    ems_runs |> dplyr::select(Year, Runs),
+    by = "Year"
+  ) |>
+  dplyr::mutate(
+    percent_runs = n / Runs
+  )
+
+# join the transport runs and incidents table ----
+transport_incidents_runs <- transport_incidents |>
+  dplyr::rename(Transport_Incidents = n) |>
+  dplyr::left_join(
+    transport_runs |> dplyr::rename(Transport_Runs = n),
+    by = c("Patient_Transported", "Year")
+  ) |>
+  dplyr::select(-Patient_Transported)
+
+# Get trauma related ems responses ----
+ems_trauma_incidents <- ems_data_clean |>
+  dplyr::filter(
+    Trauma_Flag == "Yes",
+    Scene_First_EMS_Unit_On_Scene == "Yes"
+  ) |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, name = "Incidents")
+
+# Get n trauma runs ----
+ems_trauma_runs <- ems_data_clean |>
+  dplyr::filter(Trauma_Flag == "Yes") |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, name = "Runs")
+
+# ems trauma join incidents and runs ----
+ems_trauma_incidents_runs <- ems_trauma_incidents |>
+  dplyr::left_join(ems_trauma_runs, by = "Year")
+
+# Get trauma related ems transport runs ----
+ems_trauma_transport_incidents <- ems_data_clean |>
+  dplyr::filter(
+    Trauma_Flag == "Yes",
+    Scene_First_EMS_Unit_On_Scene == "Yes"
+  ) |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, Patient_Transported) |>
+  dplyr::filter(Patient_Transported == T) |>
+  dplyr::left_join(
+    ems_trauma_incidents |> dplyr::select(Year, Incidents),
+    by = "Year"
+  ) |>
+  dplyr::left_join(
+    transport_incidents |> dplyr::select(Year, n_transports = n),
+    by = dplyr::join_by(Year),
+    suffix = c("_trauma", "_transport")
+  ) |>
+  dplyr::mutate(
+    percent_trauma_transport_incidents = n / Incidents
+  )
+
+# Get trauma related ems transport incidents ----
+ems_trauma_transport_runs <- ems_data_clean |>
+  dplyr::filter(Trauma_Flag == "Yes") |>
+  dplyr::distinct(Unique_Run_ID, .keep_all = TRUE) |>
+  dplyr::count(Year, Patient_Transported) |>
+  dplyr::filter(Patient_Transported == T) |>
+  dplyr::left_join(
+    ems_trauma_runs |> dplyr::select(Year, Runs),
+    by = "Year"
+  ) |>
+  dplyr::left_join(
+    transport_runs |> dplyr::select(Year, n_transports = n),
+    by = dplyr::join_by(Year)
+  ) |>
+  dplyr::mutate(
+    percent_trauma_transport_runs = n / Runs,
+    percent_trauma_total_transport_runs = n / n_transports
+  )
+
+# join the ems trauma transport incident and runs tables ----
+ems_trauma_transport_incidents_runs <- ems_trauma_transport_incidents |>
+  dplyr::rename(Trauma_Transport_Incidents = n) |>
+  dplyr::left_join(
+    ems_trauma_transport_runs |> dplyr::rename(Trauma_Transport_Runs = n),
+    by = c("Patient_Transported", "Year"),
+    suffix = c("_incidents", "_runs")
+  ) |>
+  dplyr::select(-Patient_Transported) |>
+  tidyr::pivot_longer(
+    cols = Trauma_Transport_Incidents:tidyselect::last_col(),
+    names_to = "measure",
+    values_to = "value"
   )
 
 # median ED stay prior to transfer by ISS range df ----

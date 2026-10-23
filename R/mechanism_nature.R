@@ -10,8 +10,14 @@
 # get counts and proportions of injury events by mechanism of injury ----
 mechanism_of_injury_counts <- trauma_data_clean |>
   dplyr::filter(!is.na(CAUSE_OF_INJURY_AR_1)) |>
-  injury_incident_count(Year, CAUSE_OF_INJURY_AR_1) |>
-  dplyr::mutate(valid_percent = n / sum(n), .by = Year)
+  injury_incident_count(
+    Year,
+    CAUSE_OF_INJURY_AR_1,
+    descriptive_stats = TRUE,
+    group = CAUSE_OF_INJURY_AR_1
+  ) |>
+  dplyr::mutate(valid_percent = n / sum(n), .by = Year) |>
+  dplyr::arrange(CAUSE_OF_INJURY_AR_1)
 
 # get a subset of the counts for the plot ----
 mechanism_of_injury_counts_select <- mechanism_of_injury_counts |>
@@ -88,6 +94,10 @@ mechanism_of_injury_lines <- mechanism_of_injury_counts_quarterly |>
     linewidth = 1.25,
     lineend = "round",
     linejoin = "round"
+  ) +
+  ggplot2::geom_point(
+    ggplot2::aes(alpha = 0.9),
+    size = 2
   ) +
   ggplot2::labs(x = "", y = "", color = "Mechanism") +
   ggplot2::scale_x_date(
@@ -187,7 +197,7 @@ nature_of_injury_gt <- nature_of_injury_counts |>
   gt::tab_footnote(
     footnote = small_count_message,
     locations = gt::cells_body(
-      columns = c(Firearm, `Struck by/against`),
+      columns = Firearm,
       rows = 5
     )
   ) |>
@@ -455,6 +465,39 @@ tbi_injury_event_data <- trauma_2025 |>
 readr::write_csv(
   x = tbi_injury_event_data,
   file = paste0(output_folder, "/tbi_injury_event_data.csv")
+)
+
+#### gt table of injury event counts by injury cause and TBI ----
+tbi_injury_event_gt <- tbi_injury_event_data |>
+  dplyr::mutate(non_tbi_pct = Non_TBI / Total, .after = pct_tbi) |>
+  gt::gt() |>
+  gt::fmt_number(columns = c(Non_TBI:TBI, Total), drop_trailing_zeros = TRUE) |>
+  gt::fmt_percent(columns = pct_tbi:non_tbi_pct, decimals = 2) |>
+  gt::cols_label(
+    CAUSE_OF_INJURY_AR_1 ~ "Cause",
+    Non_TBI ~ "Non-TBI"
+  ) |>
+  gt::cols_merge_n_pct(col_n = TBI, col_pct = pct_tbi) |>
+  gt::cols_merge_n_pct(col_n = Non_TBI, col_pct = non_tbi_pct) |>
+  gt::tab_footnote(
+    footnote = "Format is n (% of total).",
+    locations = gt::cells_column_labels(columns = Non_TBI:TBI)
+  ) |>
+  gt::tab_footnote(
+    footnote = "Categories are in descending order of % TBI.",
+    locations = gt::cells_column_labels(columns = CAUSE_OF_INJURY_AR_1)
+  ) |>
+  gt::tab_footnote(
+    footnote = "Records with missing ICD-10CM data were removed.",
+    locations = gt::cells_column_labels(columns = Total)
+  ) |>
+  tab_style_hhs(border_cols = 2:tidyselect::last_col())
+
+##### save the gt table of injury event counts by injury cause and TBI to disk ----
+gt::gtsave(
+  data = tbi_injury_event_gt,
+  filename = "tbi_injury_event_gt.png",
+  path = output_folder
 )
 
 ### create two time series objects related to TBI for a line plot ----
@@ -918,28 +961,38 @@ readr::write_csv(
 farm_ag_work_joint_probs_gt <- farm_ag_work_data |>
   dplyr::summarize(
     farm_ag = sum(Farm_Ag_Related),
-    farm_ag_work = sum(Farm_Ag_Related & Financial_Work_Related),
     work = sum(Financial_Work_Related),
+    farm_ag_work = sum(Farm_Ag_Related & Financial_Work_Related),
     n = dplyr::n(),
     .by = Year
   ) |>
   janitor::adorn_totals(where = "row") |>
   dplyr::mutate(
-    farm_ag_pct_work = scales::percent(farm_ag_work / work, accuracy = 0.01),
+    farm_ag_pct_work = farm_ag_work / work,
+    farm_ag_work_pct_farm_ag = farm_ag_work / farm_ag,
+    farm_ag_work_total_pct = farm_ag_work / n,
     farm_ag_pct = farm_ag / n,
     work_pct = work / n
   ) |>
   gt::gt() |>
   gt::fmt_number(columns = farm_ag:n, drop_trailing_zeros = TRUE) |>
-  gt::fmt_percent(columns = farm_ag_pct_work:work_pct) |>
+  gt::fmt_percent(columns = farm_ag_pct_work:work_pct, decimals = 1) |>
   gt::cols_merge_n_pct(col_n = farm_ag, col_pct = farm_ag_pct) |>
   gt::cols_merge_n_pct(col_n = work, col_pct = work_pct) |>
-  gt::cols_merge_n_pct(col_n = farm_ag_work, col_pct = farm_ag_pct_work) |>
+  gt::cols_merge(
+    columns = c(farm_ag_work, farm_ag_pct_work, farm_ag_work_pct_farm_ag),
+    pattern = "{1} ({2}, {3})"
+  ) |>
   gt::cols_label(
     farm_ag ~ "Farm/Ag",
     farm_ag_work ~ "Farm and Work-Related",
     work ~ "Work-Related",
     n ~ "N"
+  ) |>
+  gt::cols_hide(columns = farm_ag_work_total_pct) |>
+  gt::tab_footnote(
+    footnote = "Format is n (% farm/ag & work of all work, % farm/ag & work of all farm/ag).",
+    locations = gt::cells_column_labels(columns = farm_ag_work)
   ) |>
   tab_style_hhs(border_cols = 2:tidyselect::last_col())
 
